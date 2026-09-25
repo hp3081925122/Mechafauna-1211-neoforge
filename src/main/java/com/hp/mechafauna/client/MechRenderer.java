@@ -1,6 +1,7 @@
 package com.hp.mechafauna.client;
 
 import com.hp.mechafauna.entity.AnimatedHostileMob;
+import com.hp.mechafauna.entity.MechanicalSpider;
 import com.hp.mechafauna.entity.MechanicalTank;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import software.bernie.geckolib.renderer.GeoEntityRenderer;
@@ -11,5 +12,10 @@ public final class MechRenderer<T extends AnimatedHostileMob> extends GeoEntityR
         if ("mechanical_tank".equals(modelName)) {
             this.withScale(MechanicalTank.MODEL_SCALE);
         }
+    }
+
+    @Override
+    protected float getDeathMaxRotation(T entity) {
+        return entity instanceof MechanicalSpider ? 0.0F : super.getDeathMaxRotation(entity);
     }
 }

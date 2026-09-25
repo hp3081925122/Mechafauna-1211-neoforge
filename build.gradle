@@ -58,6 +58,7 @@ sourceSets.main.resources { srcDir 'src/generated/resources' }
 dependencies {
     implementation "net.neoforged:neoforge:${project.neo_version}"
     implementation "software.bernie.geckolib:geckolib-neoforge-${project.minecraft_version}:${project.geckolib_version}"
+    annotationProcessor 'net.fabricmc:sponge-mixin:0.15.2+mixin.0.8.7'
 }
 
 tasks.withType(ProcessResources).configureEach {
@@ -96,4 +97,17 @@ publishing {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+}
+
+tasks.register('verifyWeaponAim', JavaExec) {
+    dependsOn tasks.named('testClasses')
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.hp.mechafauna.entity.WeaponAimChecks'
+    javaLauncher = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('verifyWeaponAim')
 }

@@ -2,6 +2,7 @@ package com.hp.mechafauna.registry;
 
 import com.hp.mechafauna.Mechafauna;
 import com.hp.mechafauna.entity.HeavyMech;
+import com.hp.mechafauna.entity.FlameCrawler;
 import com.hp.mechafauna.entity.MechProjectile;
 import com.hp.mechafauna.entity.MechanicalDrone;
 import com.hp.mechafauna.entity.MechanicalSpider;
@@ -11,6 +12,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
+import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -28,7 +30,7 @@ public final class ModEntities {
     );
     public static final DeferredHolder<EntityType<?>, EntityType<MechanicalDrone>> MECHANICAL_DRONE = ENTITY_TYPES.register(
         "mechanical_drone",
-        () -> EntityType.Builder.of(MechanicalDrone::new, MobCategory.MONSTER).sized(2.4F, 1.4F).clientTrackingRange(12).build("mechafauna:mechanical_drone")
+        () -> EntityType.Builder.of(MechanicalDrone::new, MobCategory.MONSTER).sized(2.4F, 1.4F).passengerAttachments(new Vec3(0.0, -0.46, -0.2875)).clientTrackingRange(12).build("mechafauna:mechanical_drone")
     );
     public static final DeferredHolder<EntityType<?>, EntityType<MechanicalSpider>> MECHANICAL_SPIDER = ENTITY_TYPES.register(
         "mechanical_spider",
@@ -37,6 +39,10 @@ public final class ModEntities {
     public static final DeferredHolder<EntityType<?>, EntityType<HeavyMech>> HEAVY_MECH = ENTITY_TYPES.register(
         "heavy_mech",
         () -> EntityType.Builder.of(HeavyMech::new, MobCategory.MONSTER).sized(2.0F, 3.5F).clientTrackingRange(16).build("mechafauna:heavy_mech")
+    );
+    public static final DeferredHolder<EntityType<?>, EntityType<FlameCrawler>> FLAME_CRAWLER = ENTITY_TYPES.register(
+        "flame_crawler",
+        () -> EntityType.Builder.of(FlameCrawler::new, MobCategory.MONSTER).sized(3.1F, 1.8F).clientTrackingRange(12).build("mechafauna:flame_crawler")
     );
     public static final DeferredHolder<EntityType<?>, EntityType<MechProjectile>> MECH_PROJECTILE = ENTITY_TYPES.register(
         "mech_projectile",
@@ -52,5 +58,6 @@ public final class ModEntities {
         event.put(MECHANICAL_DRONE.get(), MechanicalDrone.createAttributes().build());
         event.put(MECHANICAL_SPIDER.get(), MechanicalSpider.createAttributes().build());
         event.put(HEAVY_MECH.get(), HeavyMech.createAttributes().build());
+        event.put(FLAME_CRAWLER.get(), FlameCrawler.createAttributes().build());
     }
 }

@@ -4,9 +4,15 @@
   "entity.mechafauna.mechanical_drone": "武装无人机",
   "entity.mechafauna.mechanical_spider": "自爆机械蜘蛛",
   "entity.mechafauna.heavy_mech": "重装机甲",
+  "entity.mechafauna.flame_crawler": "喷火爬行者",
   "item.mechafauna.mechanical_wolf_spawn_egg": "机械犬刷怪蛋",
   "item.mechafauna.mechanical_tank_spawn_egg": "机械坦克刷怪蛋",
   "item.mechafauna.mechanical_drone_spawn_egg": "武装无人机刷怪蛋",
   "item.mechafauna.mechanical_spider_spawn_egg": "自爆机械蜘蛛刷怪蛋",
-  "item.mechafauna.heavy_mech_spawn_egg": "重装机甲刷怪蛋"
+  "item.mechafauna.heavy_mech_spawn_egg": "重装机甲刷怪蛋",
+  "item.mechafauna.flame_crawler_spawn_egg": "喷火爬行者刷怪蛋",
+  "item.mechafauna.mechanical_scrap": "机械碎片",
+  "item.mechafauna.weaponized_drone": "武装无人机",
+  "item.mechafauna.mechanical_spider_throwable": "自爆机械蜘蛛",
+  "itemGroup.mechafauna.main": "机械生物"
 }

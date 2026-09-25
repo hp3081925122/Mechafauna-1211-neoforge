@@ -2,6 +2,8 @@ package com.hp.mechafauna;
 
 import com.hp.mechafauna.registry.ModEntities;
 import com.hp.mechafauna.registry.ModItems;
+import com.hp.mechafauna.registry.ModParticles;
+import com.hp.mechafauna.network.DroneControlPayload;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
@@ -13,7 +15,10 @@ public final class Mechafauna {
     public Mechafauna(IEventBus modEventBus, ModContainer modContainer) {
         ModEntities.ENTITY_TYPES.register(modEventBus);
         ModItems.ITEMS.register(modEventBus);
+        ModItems.CREATIVE_MODE_TABS.register(modEventBus);
+        ModParticles.PARTICLE_TYPES.register(modEventBus);
         modEventBus.addListener(ModEntities::registerAttributes);
         modEventBus.addListener(ModItems::addSpawnEggsToCreativeTab);
+        modEventBus.addListener(DroneControlPayload::register);
     }
 }

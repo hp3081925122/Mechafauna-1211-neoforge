@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.hp.mechafauna.mixin.client",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "PlayerDronePoseMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

@@ -3,24 +3,27 @@ package com.hp.mechafauna.client;
 import com.hp.mechafauna.Mechafauna;
 import com.hp.mechafauna.entity.AnimatedHostileMob;
 import com.hp.mechafauna.entity.HeavyMech;
+import com.hp.mechafauna.entity.FlameCrawler;
 import com.hp.mechafauna.entity.MechanicalDrone;
 import com.hp.mechafauna.entity.MechanicalSpider;
 import com.hp.mechafauna.entity.MechanicalTank;
+import com.hp.mechafauna.entity.WeaponMount;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.phys.Vec3;
+import org.joml.Matrix4d;
 import software.bernie.geckolib.cache.object.GeoBone;
 import software.bernie.geckolib.animatable.GeoAnimatable;
 import software.bernie.geckolib.animation.AnimationState;
 import software.bernie.geckolib.model.GeoModel;
 
 public final class MechModel<T extends AnimatedHostileMob & GeoAnimatable> extends GeoModel<T> {
-    private final String modelName;
     private final ResourceLocation model;
     private final ResourceLocation texture;
     private final ResourceLocation animation;
 
     public MechModel(String modelName) {
-        this.modelName = modelName;
         this.model = ResourceLocation.fromNamespaceAndPath(Mechafauna.MOD_ID, "geo/" + modelName + ".geo.json");
         this.texture = ResourceLocation.fromNamespaceAndPath(Mechafauna.MOD_ID, "textures/entity/" + modelName + ".png");
         this.animation = ResourceLocation.fromNamespaceAndPath(Mechafauna.MOD_ID, "animations/" + modelName + ".animation.json");
@@ -47,18 +50,54 @@ public final class MechModel<T extends AnimatedHostileMob & GeoAnimatable> exten
     @Override
     public void setCustomAnimations(T entity, long instanceId, AnimationState<T> animationState) {
         super.setCustomAnimations(entity, instanceId, animationState);
-        float bodyAnimationYaw = this.getBone("body").map(bone -> bone.getRotY()).orElse(0.0F);
-        float relativeYaw = Mth.wrapDegrees(entity.getYHeadRot() - entity.yBodyRot) * Mth.DEG_TO_RAD - bodyAnimationYaw;
+        float partialTick = animationState.getPartialTick();
         if (entity instanceof MechanicalTank) {
-            this.getBone("turret").ifPresent(bone -> bone.setRotY(bone.getRotY() + relativeYaw));
+            this.aimWeapon(entity, WeaponMount.TANK_CANNON, partialTick);
         } else if (entity instanceof MechanicalDrone) {
-            this.getBone("gun_yaw").ifPresent(bone -> bone.setRotY(bone.getRotY() + relativeYaw));
-            this.getBone("gun_pitch").ifPresent(bone -> bone.setRotX(bone.getRotX() - entity.getXRot() * Mth.DEG_TO_RAD));
+            this.aimWeapon(entity, WeaponMount.DRONE_GUN, partialTick);
         } else if (entity instanceof HeavyMech) {
-            this.getBone("gun_mount").ifPresent(bone -> bone.setRotY(bone.getRotY() + relativeYaw));
-            this.getBone("missile_mount").ifPresent(bone -> bone.setRotY(bone.getRotY() + relativeYaw));
-            this.getBone("gun_pitch").ifPresent(bone -> bone.setRotX(bone.getRotX() - entity.getXRot() * Mth.DEG_TO_RAD));
-            this.getBone("missile_pitch").ifPresent(bone -> bone.setRotX(bone.getRotX() - entity.getXRot() * Mth.DEG_TO_RAD));
+            this.aimWeapon(entity, WeaponMount.MECH_GUN, partialTick);
+            this.aimWeapon(entity, WeaponMount.MECH_MISSILES, partialTick);
+        } else if (entity instanceof FlameCrawler) {
+            this.aimWeapon(entity, WeaponMount.FLAME_CRAWLER, partialTick);
         }
+    }
+
+    private void aimWeapon(T entity, WeaponMount mount, float partialTick) {
+        GeoBone yawBone = this.getBone(mount.yawBone()).orElse(null);
+        GeoBone pitchBone = this.getBone(mount.pitchBone()).orElse(null);
+        if (yawBone == null || pitchBone == null) {
+            return;
+        }
+        LivingEntity target = entity.getCombatTarget();
+        if (target == null) {
+            if (!(entity instanceof MechanicalTank)) {
+                yawBone.setRotY(yawBone.getInitialSnapshot().getRotY());
+            }
+            pitchBone.setRotX(pitchBone.getInitialSnapshot().getRotX());
+        } else {
+            float bodyYaw = Mth.rotLerp(partialTick, entity.yBodyRotO, entity.yBodyRot);
+            Matrix4d parentToWorld = WeaponMount.modelToWorld(entity.getPosition(partialTick), bodyYaw, entity.getModelScale());
+            this.applyParentPose(parentToWorld, yawBone.getParent());
+            parentToWorld.translate(-yawBone.getPosX(), yawBone.getPosY(), yawBone.getPosZ());
+            Vec3 targetCenter = target.getPosition(partialTick).add(0.0, target.getBbHeight() * 0.5, 0.0);
+            WeaponMount.Aim aim = mount.aim(parentToWorld, targetCenter);
+            yawBone.updateRotation(0.0F, aim.yaw(), 0.0F);
+            pitchBone.updateRotation(aim.pitch(), 0.0F, 0.0F);
+        }
+        yawBone.resetStateChanges();
+        pitchBone.resetStateChanges();
+    }
+
+    private void applyParentPose(Matrix4d matrix, GeoBone bone) {
+        if (bone == null) {
+            return;
+        }
+        this.applyParentPose(matrix, bone.getParent());
+        matrix.translate(-bone.getPosX(), bone.getPosY(), bone.getPosZ())
+            .translate(bone.getPivotX(), bone.getPivotY(), bone.getPivotZ())
+            .rotateZ(bone.getRotZ()).rotateY(bone.getRotY()).rotateX(bone.getRotX())
+            .scale(bone.getScaleX(), bone.getScaleY(), bone.getScaleZ())
+            .translate(-bone.getPivotX(), -bone.getPivotY(), -bone.getPivotZ());
     }
 }

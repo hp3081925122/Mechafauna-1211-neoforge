@@ -2,11 +2,12 @@ package com.hp.mechafauna.client;
 
 import com.hp.mechafauna.Mechafauna;
 import com.hp.mechafauna.registry.ModEntities;
-import net.minecraft.client.renderer.entity.ThrownItemRenderer;
+import com.hp.mechafauna.registry.ModParticles;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+import net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent;
 
 @EventBusSubscriber(modid = Mechafauna.MOD_ID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public final class ClientModEvents {
@@ -20,6 +21,12 @@ public final class ClientModEvents {
         event.registerEntityRenderer(ModEntities.MECHANICAL_DRONE.get(), context -> new MechRenderer<>(context, "mechanical_drone"));
         event.registerEntityRenderer(ModEntities.MECHANICAL_SPIDER.get(), context -> new MechRenderer<>(context, "mechanical_spider"));
         event.registerEntityRenderer(ModEntities.HEAVY_MECH.get(), context -> new MechRenderer<>(context, "heavy_mech"));
-        event.registerEntityRenderer(ModEntities.MECH_PROJECTILE.get(), ThrownItemRenderer::new);
+        event.registerEntityRenderer(ModEntities.FLAME_CRAWLER.get(), FlameCrawlerRenderer::new);
+        event.registerEntityRenderer(ModEntities.MECH_PROJECTILE.get(), MechProjectileRenderer::new);
+    }
+
+    @SubscribeEvent
+    public static void registerParticleProviders(RegisterParticleProvidersEvent event) {
+        event.registerSpriteSet(ModParticles.SCALED_EXPLOSION.get(), ScaledExplosionParticle.Provider::new);
     }
 }

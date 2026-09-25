@@ -11,16 +11,20 @@ import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.ai.goal.RandomStrollGoal;
+import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
+import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
 import software.bernie.geckolib.animatable.GeoEntity;
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
@@ -34,10 +38,14 @@ import software.bernie.geckolib.util.GeckoLibUtil;
 public abstract class AnimatedHostileMob extends Monster implements GeoEntity {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final EntityDataAccessor<String> DATA_ACTION = SynchedEntityData.defineId(AnimatedHostileMob.class, EntityDataSerializers.STRING);
-    private static final EntityDataAccessor<Boolean> DATA_HAS_TARGET = SynchedEntityData.defineId(AnimatedHostileMob.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Integer> DATA_TARGET_ID = SynchedEntityData.defineId(AnimatedHostileMob.class, EntityDataSerializers.INT);
     private final AnimatableInstanceCache animationCache = GeckoLibUtil.createInstanceCache(this);
     private int activeActionTicks;
     private int lastAimTargetId = -1;
+    private int lastCombatAimTick = -1;
+    private float combatBodyYaw;
+    private float combatHeadYaw;
+    private int lastShotLogTick = -100;
     private boolean movementAnimationActive;
     private String lastMovementAnimation;
 
@@ -51,14 +59,21 @@ public abstract class AnimatedHostileMob extends Monster implements GeoEntity {
         if (this.level().isClientSide) {
             return;
         }
+        this.updateCombatAim();
+    }
+
+    public final void updateCombatAim() {
         LivingEntity target = this.getTarget();
         if (target == null || !target.isAlive()) {
+            this.entityData.set(DATA_TARGET_ID, -1);
+            this.lastCombatAimTick = -1;
             if (this.lastAimTargetId != -1) {
                 LOGGER.debug("Mech aim target lost entity={} target={}", this.getId(), this.lastAimTargetId);
                 this.lastAimTargetId = -1;
             }
             return;
         }
+        this.entityData.set(DATA_TARGET_ID, target.getId());
         double dx = target.getX() - this.getX();
         double dz = target.getZ() - this.getZ();
         float targetYaw = dx * dx + dz * dz > 1.0E-6
@@ -68,10 +83,15 @@ public abstract class AnimatedHostileMob extends Monster implements GeoEntity {
             LOGGER.debug("Mech aim target acquired entity={} target={} bodyYaw={} targetYaw={}", this.getId(), target.getId(), this.yBodyRot, targetYaw);
             this.lastAimTargetId = target.getId();
         }
-        float bodyYaw = Mth.approachDegrees(this.yBodyRot, targetYaw, this.getCombatTurnSpeed());
-        this.setYRot(bodyYaw);
-        this.setYBodyRot(bodyYaw);
-        this.setYHeadRot(targetYaw);
+        if (this.lastCombatAimTick != this.tickCount) {
+            float previousYaw = this.lastCombatAimTick == this.tickCount - 1 ? this.combatBodyYaw : this.yBodyRot;
+            this.combatBodyYaw = Mth.approachDegrees(previousYaw, targetYaw, this.getCombatTurnSpeed());
+            this.combatHeadYaw = targetYaw;
+            this.lastCombatAimTick = this.tickCount;
+        }
+        this.setYRot(this.combatBodyYaw);
+        this.setYBodyRot(this.combatBodyYaw);
+        this.setYHeadRot(this.combatHeadYaw);
     }
 
     @Override
@@ -87,7 +107,7 @@ public abstract class AnimatedHostileMob extends Monster implements GeoEntity {
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
         builder.define(DATA_ACTION, "");
-        builder.define(DATA_HAS_TARGET, false);
+        builder.define(DATA_TARGET_ID, -1);
     }
 
     @Override
@@ -95,12 +115,23 @@ public abstract class AnimatedHostileMob extends Monster implements GeoEntity {
         super.setTarget(target);
         if (!this.level().isClientSide) {
             LivingEntity actualTarget = this.getTarget();
-            this.entityData.set(DATA_HAS_TARGET, actualTarget != null && actualTarget.isAlive());
+            this.entityData.set(DATA_TARGET_ID, actualTarget != null && actualTarget.isAlive() ? actualTarget.getId() : -1);
         }
     }
 
     public final boolean hasCombatTarget() {
-        return this.entityData.get(DATA_HAS_TARGET);
+        return this.entityData.get(DATA_TARGET_ID) != -1;
+    }
+
+    public final LivingEntity getCombatTarget() {
+        if (this.level().getEntity(this.entityData.get(DATA_TARGET_ID)) instanceof LivingEntity target && target.isAlive()) {
+            return target;
+        }
+        return null;
+    }
+
+    public double getModelScale() {
+        return this.getScale();
     }
 
     protected static AttributeSupplier.Builder createAttributes(double health, double speed, double armor, double followRange, double knockbackResistance) {
@@ -121,6 +152,23 @@ public abstract class AnimatedHostileMob extends Monster implements GeoEntity {
         this.goalSelector.addGoal(8, new LookAtPlayerGoal(this, Player.class, 8.0F));
         this.goalSelector.addGoal(9, new RandomLookAroundGoal(this));
         this.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, Player.class, true));
+        this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Mob.class, 10, true, false,
+            target -> target instanceof Enemy && !(target instanceof AnimatedHostileMob)));
+        this.targetSelector.addGoal(0, new HurtByTargetGoal(this) {
+            @Override
+            public boolean canUse() {
+                return !(this.mob.getLastHurtByMob() instanceof AnimatedHostileMob) && super.canUse();
+            }
+
+            @Override
+            public void start() {
+                super.start();
+                LivingEntity attacker = this.mob.getTarget();
+                if (attacker != null) {
+                    LOGGER.debug("Mech retaliation target acquired entity={} attacker={} attackerType={}", this.mob.getId(), attacker.getId(), attacker.getType());
+                }
+            }
+        });
     }
 
     @Override
@@ -186,7 +234,15 @@ public abstract class AnimatedHostileMob extends Monster implements GeoEntity {
 
     public abstract double getCombatHoldDistance();
 
+    public double getCombatRetreatDistance() {
+        return 0.0;
+    }
+
     public abstract double getChaseSpeed();
+
+    public boolean canMoveDuringAction(String action) {
+        return false;
+    }
 
     protected abstract void onActionStarted(String action, net.minecraft.world.entity.LivingEntity target);
 
@@ -246,10 +302,11 @@ public abstract class AnimatedHostileMob extends Monster implements GeoEntity {
         }
     }
 
-    protected final void damageTarget(net.minecraft.world.entity.LivingEntity target, float damage, double maxDistanceSquared) {
+    protected final boolean damageTarget(net.minecraft.world.entity.LivingEntity target, float damage, double maxDistanceSquared) {
         if (target.isAlive() && this.distanceToSqr(target) <= maxDistanceSquared && this.hasLineOfSight(target)) {
-            target.hurt(this.damageSources().mobAttack(this), damage);
+            return target.hurt(this.damageSources().mobAttack(this), damage);
         }
+        return false;
     }
 
     protected final void damageNearby(double radius, float damage, double knockback) {
@@ -267,20 +324,36 @@ public abstract class AnimatedHostileMob extends Monster implements GeoEntity {
         }
     }
 
-    protected final void launchProjectile(net.minecraft.world.entity.LivingEntity target, boolean missile, double speed) {
-        MechProjectile projectile = new MechProjectile(com.hp.mechafauna.registry.ModEntities.MECH_PROJECTILE.get(), this.level(), this, missile);
-        net.minecraft.world.phys.Vec3 start = this.getEyePosition().add(this.getLookAngle().scale(0.8));
-        net.minecraft.world.phys.Vec3 aim = target.isAlive()
-            ? target.getBoundingBox().getCenter().subtract(start).normalize()
-            : this.getLookAngle();
+    protected final void launchProjectile(LivingEntity target, WeaponMount mount, Vec3 muzzle, boolean missile, boolean laser, double speed, float impactDamage) {
+        if (target == null) {
+            return;
+        }
+        this.launchProjectile(target, mount, muzzle, target.getBoundingBox().getCenter(), missile, laser, speed, impactDamage);
+    }
+
+    protected final void launchProjectile(LivingEntity target, WeaponMount mount, Vec3 muzzle, Vec3 aimPoint, boolean missile, boolean laser, double speed, float impactDamage) {
+        if (this.level().isClientSide || target == null || !target.isAlive() || aimPoint == null) {
+            return;
+        }
+        this.updateCombatAim();
+        WeaponPose pose = WeaponPose.forModel(mount.modelName());
+        String action = this.getActiveAction();
+        String animation = action == null ? null : this.getActionAnimations().get(action);
+        double seconds = Math.max(0, this.activeActionTicks - this.getActionTransitionTicks()) / 20.0;
+        WeaponMount.Aim weaponAim = mount.aim(pose.parentTransform(mount,
+            WeaponMount.modelToWorld(this.position(), this.yBodyRot, this.getModelScale()), animation, seconds),
+            target.getBoundingBox().getCenter());
+        Vec3 start = weaponAim.muzzle(pose.muzzle(mount, muzzle, animation, seconds));
+        Vec3 aim = aimPoint.subtract(start).normalize();
+        MechProjectile projectile = new MechProjectile(com.hp.mechafauna.registry.ModEntities.MECH_PROJECTILE.get(), this.level(), this, missile, laser, impactDamage);
         projectile.setPos(start.x, start.y, start.z);
         projectile.shoot(aim.x, aim.y, aim.z, (float)speed, 0.0F);
         this.level().addFreshEntity(projectile);
-    }
-
-    protected final void emitShotParticles(net.minecraft.world.entity.LivingEntity target) {
-        if (this.level() instanceof net.minecraft.server.level.ServerLevel serverLevel && target.isAlive()) {
-            serverLevel.sendParticles(net.minecraft.core.particles.ParticleTypes.CRIT, target.getX(), target.getEyeY(), target.getZ(), 2, 0.12, 0.12, 0.12, 0.02);
+        if (this.tickCount - this.lastShotLogTick >= 20) {
+            LOGGER.debug("Mech weapon shot entity={} weapon={} target={} muzzle={} direction={} damage={} bodyYaw={} weaponYaw={} weaponPitch={} projectileYaw={} projectilePitch={}",
+                this.getId(), mount.yawBone(), target.getId(), start, aim, impactDamage, this.yBodyRot,
+                weaponAim.yaw() * Mth.RAD_TO_DEG, weaponAim.pitch() * Mth.RAD_TO_DEG, projectile.getYRot(), projectile.getXRot());
+            this.lastShotLogTick = this.tickCount;
         }
     }
 

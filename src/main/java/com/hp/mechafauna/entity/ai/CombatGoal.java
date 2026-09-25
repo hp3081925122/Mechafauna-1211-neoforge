@@ -55,25 +55,49 @@ public final class CombatGoal extends Goal {
             return;
         }
         this.mob.getLookControl().setLookAt(target, 30.0F, 30.0F);
+        this.mob.updateCombatAim();
         double distanceSquared = this.mob.distanceToSqr(target);
         if (this.mob.isPerformingAction()) {
             this.mob.tickAction(target);
             if (this.mob.isPerformingAction()) {
-                this.mob.getNavigation().stop();
+                if (this.mob.canMoveDuringAction(this.mob.getActiveAction())) {
+                    this.updateCombatMovement(target, distanceSquared);
+                } else {
+                    this.mob.getNavigation().stop();
+                }
                 return;
             }
         }
         if (this.mob.hasLineOfSight(target)) {
             for (String action : this.mob.getAvailableActions(target, distanceSquared)) {
                 if (this.cooldowns.getOrDefault(action, 0) == 0) {
-                    this.mob.getNavigation().stop();
+                    if (!this.mob.canMoveDuringAction(action)) {
+                        this.mob.getNavigation().stop();
+                    }
                     this.mob.beginAction(action, target);
                     this.cooldowns.put(action, this.mob.getActionCooldown(action));
                     return;
                 }
             }
         }
-        if (distanceSquared > this.mob.getCombatHoldDistance() * this.mob.getCombatHoldDistance() || !this.mob.hasLineOfSight(target)) {
+        this.updateCombatMovement(target, distanceSquared);
+    }
+
+    private void updateCombatMovement(LivingEntity target, double distanceSquared) {
+        double distance = Math.sqrt(distanceSquared);
+        double retreatDistance = this.mob.getCombatRetreatDistance();
+        if (retreatDistance > 0.0 && distance < retreatDistance) {
+            net.minecraft.world.phys.Vec3 away = this.mob.position().subtract(target.position()).multiply(1.0, 0.0, 1.0);
+            if (away.lengthSqr() < 1.0E-6) {
+                away = this.mob.getLookAngle().multiply(-1.0, 0.0, -1.0);
+            }
+            double retreatLength = Math.max(1.0, retreatDistance - away.horizontalDistance() + 0.5);
+            net.minecraft.world.phys.Vec3 destination = this.mob.position().add(away.normalize().scale(retreatLength));
+            if (this.pathRefreshTicks-- <= 0 || this.mob.getNavigation().isDone()) {
+                this.mob.getNavigation().moveTo(destination.x, destination.y, destination.z, 0, this.mob.getChaseSpeed());
+                this.pathRefreshTicks = 8;
+            }
+        } else if (distance > this.mob.getCombatHoldDistance() || !this.mob.hasLineOfSight(target)) {
             if (this.pathRefreshTicks-- <= 0 || this.mob.getNavigation().isDone()) {
                 this.mob.getNavigation().moveTo(target, this.mob.getChaseSpeed());
                 this.pathRefreshTicks = 8;

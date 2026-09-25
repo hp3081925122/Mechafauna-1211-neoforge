@@ -4,9 +4,15 @@
   "entity.mechafauna.mechanical_drone": "Gunship Drone",
   "entity.mechafauna.mechanical_spider": "Overload Spider",
   "entity.mechafauna.heavy_mech": "Heavy Mech",
+  "entity.mechafauna.flame_crawler": "Flame Crawler",
   "item.mechafauna.mechanical_wolf_spawn_egg": "Mechanical Hound Spawn Egg",
   "item.mechafauna.mechanical_tank_spawn_egg": "Mechanical Tank Spawn Egg",
   "item.mechafauna.mechanical_drone_spawn_egg": "Gunship Drone Spawn Egg",
   "item.mechafauna.mechanical_spider_spawn_egg": "Overload Spider Spawn Egg",
-  "item.mechafauna.heavy_mech_spawn_egg": "Heavy Mech Spawn Egg"
+  "item.mechafauna.heavy_mech_spawn_egg": "Heavy Mech Spawn Egg",
+  "item.mechafauna.flame_crawler_spawn_egg": "Flame Crawler Spawn Egg",
+  "item.mechafauna.mechanical_scrap": "Mechanical Scrap",
+  "item.mechafauna.weaponized_drone": "Weaponized Drone",
+  "item.mechafauna.mechanical_spider_throwable": "Overload Spider",
+  "itemGroup.mechafauna.main": "Mechafauna"
 }

@@ -1,0 +1,104 @@
+{
+  "width": 16,
+  "height": 16,
+  "background": "transparent",
+  "palette": {
+    "outline": "#202D3A",
+    "shadow": "#354650",
+    "metal_dark": "#52636A",
+    "metal": "#788B90",
+    "light": "#A8BABD",
+    "highlight": "#D5E2DE",
+    "teal": "#278F91",
+    "core_shadow": "#913827",
+    "core": "#D65A2F",
+    "core_light": "#F29A48"
+  },
+  "operations": [
+    {
+      "type": "polygon",
+      "color": "outline",
+      "points": [[2, 4], [4, 3], [7, 5], [9, 5], [12, 3], [14, 4], [13, 7], [11, 8], [13, 10], [14, 12], [12, 13], [9, 10], [7, 10], [4, 13], [2, 12], [3, 9], [5, 8], [3, 7]]
+    },
+    {
+      "type": "polygon",
+      "color": "shadow",
+      "points": [[3, 4], [4, 4], [7, 6], [9, 6], [12, 4], [13, 5], [12, 7], [10, 8], [12, 10], [12, 12], [9, 9], [7, 9], [4, 12], [3, 11], [4, 9], [6, 8], [4, 7]]
+    },
+    {
+      "type": "line",
+      "color": "metal",
+      "x1": 3,
+      "y1": 4,
+      "x2": 5,
+      "y2": 6
+    },
+    {
+      "type": "line",
+      "color": "metal",
+      "x1": 12,
+      "y1": 6,
+      "x2": 14,
+      "y2": 4
+    },
+    {
+      "type": "line",
+      "color": "metal",
+      "x1": 3,
+      "y1": 11,
+      "x2": 5,
+      "y2": 9
+    },
+    {
+      "type": "line",
+      "color": "metal",
+      "x1": 12,
+      "y1": 9,
+      "x2": 14,
+      "y2": 11
+    },
+    {
+      "type": "pixels",
+      "color": "light",
+      "points": [[3, 4], [4, 5], [12, 5], [13, 4], [3, 11], [4, 10], [12, 10], [13, 11]]
+    },
+    {
+      "type": "polygon",
+      "color": "metal_dark",
+      "points": [[5, 6], [7, 5], [9, 5], [11, 6], [11, 8], [10, 9], [6, 9], [5, 8]]
+    },
+    {
+      "type": "polygon",
+      "color": "metal",
+      "points": [[6, 6], [7, 6], [8, 5], [9, 6], [10, 6], [10, 8], [9, 9], [7, 9], [6, 8]]
+    },
+    {
+      "type": "pixels",
+      "color": "highlight",
+      "points": [[6, 6], [7, 5], [9, 5], [10, 6], [5, 7], [6, 7]]
+    },
+    {
+      "type": "rect",
+      "color": "core_shadow",
+      "x1": 7,
+      "y1": 6,
+      "x2": 9,
+      "y2": 8
+    },
+    {
+      "type": "pixels",
+      "color": "core",
+      "points": [[7, 7], [8, 6], [8, 7], [9, 7], [8, 8]]
+    },
+    {
+      "type": "pixels",
+      "color": "core_light",
+      "points": [[8, 6], [8, 7]]
+    },
+    {
+      "type": "pixels",
+      "color": "teal",
+      "points": [[5, 7], [10, 7], [6, 9], [9, 9]]
+    }
+  ]
+}

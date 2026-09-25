@@ -9,7 +9,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.level.Level;
 
-public final class MechanicalWolf extends AnimatedHostileMob {
+public final class MechanicalWolf extends MechanicalMob {
     private static final String BITE = "bite";
     private static final String WALK = "walk";
     private static final String RUN = "run";

@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "srs",
+    "rIr",
+    "srs"
+  ],
+  "key": {
+    "s": {
+      "item": "mechafauna:mechanical_scrap"
+    },
+    "r": {
+      "item": "minecraft:redstone_block"
+    },
+    "I": {
+      "item": "minecraft:iron_block"
+    }
+  },
+  "result": {
+    "id": "mechafauna:weaponized_drone",
+    "count": 1
+  }
+}
