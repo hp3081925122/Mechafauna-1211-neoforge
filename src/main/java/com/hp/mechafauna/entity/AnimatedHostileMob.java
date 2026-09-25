@@ -328,31 +328,60 @@ public abstract class AnimatedHostileMob extends Monster implements GeoEntity {
         if (target == null) {
             return;
         }
-        this.launchProjectile(target, mount, muzzle, target.getBoundingBox().getCenter(), missile, laser, speed, impactDamage);
+        this.launchProjectileInternal(target, mount, muzzle, target.getBoundingBox().getCenter(), missile, laser, false, speed, impactDamage);
     }
 
     protected final void launchProjectile(LivingEntity target, WeaponMount mount, Vec3 muzzle, Vec3 aimPoint, boolean missile, boolean laser, double speed, float impactDamage) {
+        this.launchProjectileInternal(target, mount, muzzle, aimPoint, missile, laser, false, speed, impactDamage);
+    }
+
+    protected final void launchCyanLaser(LivingEntity target, WeaponMount mount, Vec3 muzzle, double speed, float impactDamage) {
+        if (target == null) {
+            return;
+        }
+        this.launchCyanLaser(target, mount, muzzle, target.getBoundingBox().getCenter(), speed, impactDamage);
+    }
+
+    protected final void launchCyanLaser(LivingEntity target, WeaponMount mount, Vec3 muzzle, Vec3 aimPoint, double speed, float impactDamage) {
+        this.launchProjectileInternal(target, mount, muzzle, aimPoint, false, true, false, speed, impactDamage);
+    }
+
+    protected final void launchPrismLaserFromPosition(LivingEntity target, Vec3 muzzle, double speed, float impactDamage) {
+        if (target == null) {
+            return;
+        }
+        this.launchProjectileInternal(target, null, muzzle, target.getBoundingBox().getCenter(), false, true, true, speed, impactDamage);
+    }
+
+    private void launchProjectileInternal(LivingEntity target, WeaponMount mount, Vec3 muzzle, Vec3 aimPoint, boolean missile, boolean laser, boolean prismLaser, double speed, float impactDamage) {
         if (this.level().isClientSide || target == null || !target.isAlive() || aimPoint == null) {
             return;
         }
         this.updateCombatAim();
-        WeaponPose pose = WeaponPose.forModel(mount.modelName());
-        String action = this.getActiveAction();
-        String animation = action == null ? null : this.getActionAnimations().get(action);
-        double seconds = Math.max(0, this.activeActionTicks - this.getActionTransitionTicks()) / 20.0;
-        WeaponMount.Aim weaponAim = mount.aim(pose.parentTransform(mount,
-            WeaponMount.modelToWorld(this.position(), this.yBodyRot, this.getModelScale()), animation, seconds),
-            target.getBoundingBox().getCenter());
-        Vec3 start = weaponAim.muzzle(pose.muzzle(mount, muzzle, animation, seconds));
+        Vec3 start = muzzle;
+        float weaponYaw = 0.0F;
+        float weaponPitch = 0.0F;
+        if (mount != null) {
+            WeaponPose pose = WeaponPose.forModel(mount.modelName());
+            String action = this.getActiveAction();
+            String animation = action == null ? null : this.getActionAnimations().get(action);
+            double seconds = Math.max(0, this.activeActionTicks - this.getActionTransitionTicks()) / 20.0;
+            WeaponMount.Aim weaponAim = mount.aim(pose.parentTransform(mount,
+                WeaponMount.modelToWorld(this.position(), this.yBodyRot, this.getModelScale()), animation, seconds),
+                target.getBoundingBox().getCenter());
+            start = weaponAim.muzzle(pose.muzzle(mount, muzzle, animation, seconds));
+            weaponYaw = weaponAim.yaw() * Mth.RAD_TO_DEG;
+            weaponPitch = weaponAim.pitch() * Mth.RAD_TO_DEG;
+        }
         Vec3 aim = aimPoint.subtract(start).normalize();
-        MechProjectile projectile = new MechProjectile(com.hp.mechafauna.registry.ModEntities.MECH_PROJECTILE.get(), this.level(), this, missile, laser, impactDamage);
+        MechProjectile projectile = new MechProjectile(com.hp.mechafauna.registry.ModEntities.MECH_PROJECTILE.get(), this.level(), this, missile, laser, prismLaser, impactDamage);
         projectile.setPos(start.x, start.y, start.z);
         projectile.shoot(aim.x, aim.y, aim.z, (float)speed, 0.0F);
         this.level().addFreshEntity(projectile);
         if (this.tickCount - this.lastShotLogTick >= 20) {
             LOGGER.debug("Mech weapon shot entity={} weapon={} target={} muzzle={} direction={} damage={} bodyYaw={} weaponYaw={} weaponPitch={} projectileYaw={} projectilePitch={}",
-                this.getId(), mount.yawBone(), target.getId(), start, aim, impactDamage, this.yBodyRot,
-                weaponAim.yaw() * Mth.RAD_TO_DEG, weaponAim.pitch() * Mth.RAD_TO_DEG, projectile.getYRot(), projectile.getXRot());
+                this.getId(), mount == null ? "direct" : mount.yawBone(), target.getId(), start, aim, impactDamage, this.yBodyRot,
+                weaponYaw, weaponPitch, projectile.getYRot(), projectile.getXRot());
             this.lastShotLogTick = this.tickCount;
         }
     }

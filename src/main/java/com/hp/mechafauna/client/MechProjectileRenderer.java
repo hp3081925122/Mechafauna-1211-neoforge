@@ -30,8 +30,16 @@ public final class MechProjectileRenderer extends GeoEntityRenderer<MechProjecti
             poseStack.mulPose(WeaponMount.projectileRotation(projectileYaw, projectilePitch));
             VertexConsumer vertices = bufferSource.getBuffer(RenderType.debugQuads());
             Matrix4f matrix = poseStack.last().pose();
-            renderLaserLayer(vertices, matrix, 0.09F, 0.22F, 1.0F, 0.015F, 0.0F, 0.26F);
-            renderLaserLayer(vertices, matrix, 0.028F, 0.19F, 1.0F, 0.12F, 0.08F, 0.95F);
+            if (entity.isCyanLaserTracer()) {
+                renderLaserLayer(vertices, matrix, 0.11F, 0.48F, 0.0F, 0.62F, 0.72F, 0.34F);
+                renderLaserLayer(vertices, matrix, 0.035F, 0.46F, 0.63F, 1.0F, 0.96F, 0.98F);
+            } else if (entity.isPrismLaserTracer()) {
+                renderLaserLayer(vertices, matrix, 0.11F, 0.48F, 0.0F, 0.62F, 0.72F, 0.34F);
+                renderLaserLayer(vertices, matrix, 0.035F, 0.46F, 0.63F, 1.0F, 0.96F, 0.98F);
+            } else {
+                renderLaserLayer(vertices, matrix, 0.09F, 0.22F, 1.0F, 0.015F, 0.0F, 0.26F);
+                renderLaserLayer(vertices, matrix, 0.028F, 0.19F, 1.0F, 0.12F, 0.08F, 0.95F);
+            }
         } finally {
             poseStack.popPose();
         }

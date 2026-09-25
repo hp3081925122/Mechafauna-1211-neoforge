@@ -47,6 +47,10 @@ public final class ModItems {
         "flame_crawler_spawn_egg",
         () -> new DeferredSpawnEggItem(ModEntities.FLAME_CRAWLER, 0x59646A, 0xE55724, new Item.Properties())
     );
+    public static final Supplier<? extends Item> PRISM_SENTINEL_SPAWN_EGG = ITEMS.register(
+        "prism_sentinel_spawn_egg",
+        () -> new DeferredSpawnEggItem(ModEntities.PRISM_SENTINEL, 0x263648, 0x43D9DC, new Item.Properties())
+    );
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> MECHAFAUNA_TAB = CREATIVE_MODE_TABS.register("main", () -> CreativeModeTab.builder()
         .title(Component.translatable("itemGroup.mechafauna.main"))
         .icon(() -> new ItemStack(MECHANICAL_WOLF_SPAWN_EGG.get()))
@@ -57,6 +61,7 @@ public final class ModItems {
             output.accept(MECHANICAL_SPIDER_SPAWN_EGG.get());
             output.accept(HEAVY_MECH_SPAWN_EGG.get());
             output.accept(FLAME_CRAWLER_SPAWN_EGG.get());
+            output.accept(PRISM_SENTINEL_SPAWN_EGG.get());
             output.accept(MECHANICAL_SCRAP.get());
             output.accept(WEAPONIZED_DRONE.get());
             output.accept(MECHANICAL_SPIDER_THROWABLE.get());
@@ -74,6 +79,7 @@ public final class ModItems {
             event.accept(MECHANICAL_SPIDER_SPAWN_EGG.get());
             event.accept(HEAVY_MECH_SPAWN_EGG.get());
             event.accept(FLAME_CRAWLER_SPAWN_EGG.get());
+            event.accept(PRISM_SENTINEL_SPAWN_EGG.get());
             event.accept(MECHANICAL_SCRAP.get());
             event.accept(WEAPONIZED_DRONE.get());
             event.accept(MECHANICAL_SPIDER_THROWABLE.get());

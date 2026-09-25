@@ -66,7 +66,7 @@ public final class MechanicalDrone extends MechanicalMob implements OwnableEntit
                 } else if (this.manualFiring && this.tickCount % 4 == 0) {
                     LivingEntity target = this.getAimedHostile(player);
                     if (target != null) {
-                        this.launchProjectile(target, WeaponMount.DRONE_GUN, WeaponMount.DRONE_GUN.muzzle(), false, true, 2.8, 1.0F);
+                        this.launchCyanLaser(target, WeaponMount.DRONE_GUN, WeaponMount.DRONE_GUN.muzzle(), 2.8, 1.0F);
                     }
                 }
             }
@@ -201,21 +201,23 @@ public final class MechanicalDrone extends MechanicalMob implements OwnableEntit
         Vec3 eye = player.getEyePosition();
         Vec3 look = player.getLookAngle().normalize();
         double range = 48.0;
+        Vec3 end = eye.add(look.scale(range));
         AABB searchBounds = player.getBoundingBox().expandTowards(look.scale(range)).inflate(1.5);
         LivingEntity bestTarget = null;
         double bestDistance = range;
         for (LivingEntity target : this.level().getEntitiesOfClass(LivingEntity.class, searchBounds,
             entity -> entity != player && entity instanceof Enemy && entity.isAlive() && !this.isAlliedTo(entity))) {
-            Vec3 offset = target.getBoundingBox().getCenter().subtract(eye);
-            double forwardDistance = offset.dot(look);
-            if (forwardDistance <= 0.0 || forwardDistance >= bestDistance || !player.hasLineOfSight(target)) {
+            if (!player.hasLineOfSight(target)) {
                 continue;
             }
-            double missDistance = offset.subtract(look.scale(forwardDistance)).lengthSqr();
-            double hitRadius = target.getBbWidth() * 0.5 + 0.55;
-            if (missDistance <= hitRadius * hitRadius) {
+            Vec3 hitPoint = target.getBoundingBox().clip(eye, end).orElse(null);
+            if (hitPoint == null) {
+                continue;
+            }
+            double hitDistance = eye.distanceTo(hitPoint);
+            if (hitDistance < bestDistance) {
                 bestTarget = target;
-                bestDistance = forwardDistance;
+                bestDistance = hitDistance;
             }
         }
         return bestTarget;
@@ -299,7 +301,7 @@ public final class MechanicalDrone extends MechanicalMob implements OwnableEntit
     @Override
     protected void onActionTick(String action, int actionTick, LivingEntity target) {
         if (GUN.equals(action) && actionTick >= 5 && actionTick <= 29 && actionTick % 3 == 2) {
-            this.launchProjectile(target, WeaponMount.DRONE_GUN, WeaponMount.DRONE_GUN.muzzle(), false, true, 2.8, 1.0F);
+            this.launchCyanLaser(target, WeaponMount.DRONE_GUN, WeaponMount.DRONE_GUN.muzzle(), 2.8, 1.0F);
         }
     }
 

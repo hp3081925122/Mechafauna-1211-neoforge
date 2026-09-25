@@ -199,7 +199,7 @@ public final class HeavyMech extends MechanicalMob {
             Vec3 muzzle = MACHINE_GUN_MUZZLES[index];
             double angle = forwardAngle + index * (Math.PI * 2.0 / MACHINE_GUN_MUZZLES.length);
             Vec3 aimPoint = targetCenter.add(right.scale(Math.cos(angle) * radius)).add(up.scale(Math.sin(angle) * radius));
-            this.launchProjectile(target, WeaponMount.MECH_GUN, muzzle, aimPoint, false, true, 0.72, 1.1F);
+            this.launchCyanLaser(target, WeaponMount.MECH_GUN, muzzle, aimPoint, 0.72, 1.1F);
         }
     }
 

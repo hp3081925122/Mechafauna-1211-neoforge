@@ -11,6 +11,7 @@ import com.hp.mechafauna.entity.WeaponMount;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4d;
 import software.bernie.geckolib.cache.object.GeoBone;
@@ -69,8 +70,17 @@ public final class MechModel<T extends AnimatedHostileMob & GeoAnimatable> exten
         if (yawBone == null || pitchBone == null) {
             return;
         }
-        LivingEntity target = entity.getCombatTarget();
-        if (target == null) {
+        Vec3 targetCenter = null;
+        if (entity instanceof MechanicalDrone drone && drone.isOwnedDrone()
+            && drone.getControllingPassenger() instanceof Player pilot) {
+            targetCenter = pilot.getEyePosition().add(pilot.getLookAngle().scale(48.0));
+        } else {
+            LivingEntity target = entity.getCombatTarget();
+            if (target != null) {
+                targetCenter = target.getPosition(partialTick).add(0.0, target.getBbHeight() * 0.5, 0.0);
+            }
+        }
+        if (targetCenter == null) {
             if (!(entity instanceof MechanicalTank)) {
                 yawBone.setRotY(yawBone.getInitialSnapshot().getRotY());
             }
@@ -80,7 +90,6 @@ public final class MechModel<T extends AnimatedHostileMob & GeoAnimatable> exten
             Matrix4d parentToWorld = WeaponMount.modelToWorld(entity.getPosition(partialTick), bodyYaw, entity.getModelScale());
             this.applyParentPose(parentToWorld, yawBone.getParent());
             parentToWorld.translate(-yawBone.getPosX(), yawBone.getPosY(), yawBone.getPosZ());
-            Vec3 targetCenter = target.getPosition(partialTick).add(0.0, target.getBbHeight() * 0.5, 0.0);
             WeaponMount.Aim aim = mount.aim(parentToWorld, targetCenter);
             yawBone.updateRotation(0.0F, aim.yaw(), 0.0F);
             pitchBone.updateRotation(aim.pitch(), 0.0F, 0.0F);

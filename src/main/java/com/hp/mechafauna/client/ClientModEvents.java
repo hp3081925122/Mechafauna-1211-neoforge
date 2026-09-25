@@ -22,6 +22,7 @@ public final class ClientModEvents {
         event.registerEntityRenderer(ModEntities.MECHANICAL_SPIDER.get(), context -> new MechRenderer<>(context, "mechanical_spider"));
         event.registerEntityRenderer(ModEntities.HEAVY_MECH.get(), context -> new MechRenderer<>(context, "heavy_mech"));
         event.registerEntityRenderer(ModEntities.FLAME_CRAWLER.get(), FlameCrawlerRenderer::new);
+        event.registerEntityRenderer(ModEntities.PRISM_SENTINEL.get(), context -> new MechRenderer<>(context, "prism_sentinel"));
         event.registerEntityRenderer(ModEntities.MECH_PROJECTILE.get(), MechProjectileRenderer::new);
     }
 

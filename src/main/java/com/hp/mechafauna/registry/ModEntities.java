@@ -8,6 +8,7 @@ import com.hp.mechafauna.entity.MechanicalDrone;
 import com.hp.mechafauna.entity.MechanicalSpider;
 import com.hp.mechafauna.entity.MechanicalTank;
 import com.hp.mechafauna.entity.MechanicalWolf;
+import com.hp.mechafauna.entity.PrismSentinel;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
@@ -44,6 +45,10 @@ public final class ModEntities {
         "flame_crawler",
         () -> EntityType.Builder.of(FlameCrawler::new, MobCategory.MONSTER).sized(3.1F, 1.8F).clientTrackingRange(12).build("mechafauna:flame_crawler")
     );
+    public static final DeferredHolder<EntityType<?>, EntityType<PrismSentinel>> PRISM_SENTINEL = ENTITY_TYPES.register(
+        "prism_sentinel",
+        () -> EntityType.Builder.of(PrismSentinel::new, MobCategory.MONSTER).sized(1.45F, 1.55F).clientTrackingRange(12).build("mechafauna:prism_sentinel")
+    );
     public static final DeferredHolder<EntityType<?>, EntityType<MechProjectile>> MECH_PROJECTILE = ENTITY_TYPES.register(
         "mech_projectile",
         () -> EntityType.Builder.<MechProjectile>of(MechProjectile::new, MobCategory.MISC).sized(0.28F, 0.28F).clientTrackingRange(10).updateInterval(1).build("mechafauna:mech_projectile")
@@ -59,5 +64,6 @@ public final class ModEntities {
         event.put(MECHANICAL_SPIDER.get(), MechanicalSpider.createAttributes().build());
         event.put(HEAVY_MECH.get(), HeavyMech.createAttributes().build());
         event.put(FLAME_CRAWLER.get(), FlameCrawler.createAttributes().build());
+        event.put(PRISM_SENTINEL.get(), PrismSentinel.createAttributes().build());
     }
 }

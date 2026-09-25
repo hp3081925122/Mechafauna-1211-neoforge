@@ -34,9 +34,13 @@ public final class MechProjectile extends ThrowableItemProjectile implements Geo
     }
 
     public MechProjectile(EntityType<? extends MechProjectile> entityType, Level level, LivingEntity owner, boolean missile, boolean laserTracer, float impactDamage) {
+        this(entityType, level, owner, missile, laserTracer, false, impactDamage);
+    }
+
+    public MechProjectile(EntityType<? extends MechProjectile> entityType, Level level, LivingEntity owner, boolean missile, boolean laserTracer, boolean prismLaser, float impactDamage) {
         super(entityType, owner, level);
         this.impactDamage = impactDamage;
-        this.setItem(new ItemStack(laserTracer ? Items.REDSTONE : missile ? Items.FIREWORK_ROCKET : Items.IRON_NUGGET));
+        this.setItem(new ItemStack(prismLaser ? Items.AMETHYST_SHARD : laserTracer ? Items.REDSTONE : missile ? Items.FIREWORK_ROCKET : Items.IRON_NUGGET));
     }
 
     public boolean isMissile() {
@@ -44,7 +48,15 @@ public final class MechProjectile extends ThrowableItemProjectile implements Geo
     }
 
     public boolean isLaserTracer() {
+        return this.isCyanLaserTracer() || this.isPrismLaserTracer();
+    }
+
+    public boolean isCyanLaserTracer() {
         return this.getItem().is(Items.REDSTONE);
+    }
+
+    public boolean isPrismLaserTracer() {
+        return this.getItem().is(Items.AMETHYST_SHARD);
     }
 
     @Override

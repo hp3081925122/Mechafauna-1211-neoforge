@@ -1,0 +1,37 @@
+{
+  "width": 128,
+  "height": 128,
+  "asset_class": "other",
+  "subtype": "voxel_entity_uv_texture_atlas",
+  "primary_subject": "棱光镜悬浮机械哨兵的 UV 贴图",
+  "canonical_archetype": "棱镜镜片与装甲板组成的机械浮游小怪",
+  "template_family": "",
+  "template_mode": "none",
+  "template_reference": "",
+  "template_override_reason": "",
+  "recognition_anchors": ["深蓝灰分块装甲", "青色多面棱镜翼板", "中央聚焦镜头", "底部悬浮推进器"],
+  "visual_sentence": "用分区像素簇表现悬浮棱镜机械哨兵的金属、玻璃晶面和青色激光镜头。",
+  "action_verb": "瞄准并发射激光",
+  "state_mechanic": "中央镜头聚能后向目标发射青色激光",
+  "cause_or_source": "棱镜镜头",
+  "direction": "模型正前方",
+  "target_or_result": "击中目标生物",
+  "effect_family": "青色能量光",
+  "background": "none",
+  "alpha_policy": "binary",
+  "supporting_cues": ["板面折线高光", "暗色散热槽", "小型紫色状态灯"],
+  "secondary_elements": [
+    {"name":"connectors","reason":"Attach the prism plates securely to the central frame.","mechanically_necessary":true},
+    {"name":"thruster","reason":"Explains hover movement and supports the raised silhouette.","mechanically_necessary":true}
+  ],
+  "forbidden_motifs": ["统一纯黑描边", "平滑渐变", "随机噪点", "无功能装饰"],
+  "detail_families": ["contour_nuance", "material_planes", "mechanical_joints", "small_highlights"],
+  "new_concepts": [],
+  "physics_check": {
+    "source": "中央棱镜镜头",
+    "path": "沿模型前向轴朝瞄准目标发射",
+    "contact": "激光弹与生物碰撞箱相交",
+    "result": "造成直接命中伤害",
+    "known_contradictions": []
+  }
+}

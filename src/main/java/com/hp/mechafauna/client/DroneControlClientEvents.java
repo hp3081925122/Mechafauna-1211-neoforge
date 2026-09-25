@@ -86,30 +86,4 @@ public final class DroneControlClientEvents {
         }
     }
 
-    @SubscribeEvent
-    public static void onMouseScroll(InputEvent.MouseScrollingEvent event) {
-        Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.player != null && minecraft.player.getVehicle() instanceof MechanicalDrone drone && drone.isOwnedBy(minecraft.player)) {
-            event.setCanceled(true);
-        }
-    }
-
-    @SubscribeEvent
-    public static void onHotbarKey(InputEvent.Key event) {
-        Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.screen != null || minecraft.player == null
-            || !(minecraft.player.getVehicle() instanceof MechanicalDrone drone) || !drone.isOwnedBy(minecraft.player)) {
-            return;
-        }
-        for (KeyMapping keyMapping : minecraft.options.keyHotbarSlots) {
-            if (keyMapping.matches(event.getKey(), event.getScanCode())) {
-                while (keyMapping.consumeClick()) {
-                }
-            }
-        }
-        if (minecraft.options.keyAttack.matches(event.getKey(), event.getScanCode())) {
-            while (minecraft.options.keyAttack.consumeClick()) {
-            }
-        }
-    }
 }
