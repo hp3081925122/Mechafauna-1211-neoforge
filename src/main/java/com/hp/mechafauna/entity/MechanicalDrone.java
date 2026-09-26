@@ -34,7 +34,7 @@ import software.bernie.geckolib.animation.AnimationController;
 import software.bernie.geckolib.animation.PlayState;
 import software.bernie.geckolib.animation.RawAnimation;
 
-public class MechanicalDrone extends MechanicalMob implements OwnableEntity {
+public final class MechanicalDrone extends MechanicalMob implements OwnableEntity {
     private static final String GUN = "gun";
     private static final String HOVER = "animation.mechanical_drone.hover";
     private static final String ROTORS = "animation.mechanical_drone.rotors";
@@ -66,7 +66,7 @@ public class MechanicalDrone extends MechanicalMob implements OwnableEntity {
                 } else if (this.manualFiring && this.tickCount % 4 == 0) {
                     LivingEntity target = this.getAimedHostile(player);
                     if (target != null) {
-                        this.fireGun(target);
+                        this.launchCyanLaser(target, WeaponMount.DRONE_GUN, WeaponMount.DRONE_GUN.muzzle(), 2.8, 1.0F);
                     }
                 }
             }
@@ -301,21 +301,8 @@ public class MechanicalDrone extends MechanicalMob implements OwnableEntity {
     @Override
     protected void onActionTick(String action, int actionTick, LivingEntity target) {
         if (GUN.equals(action) && actionTick >= 5 && actionTick <= 29 && actionTick % 3 == 2) {
-            this.fireGun(target);
+            this.launchCyanLaser(target, WeaponMount.DRONE_GUN, WeaponMount.DRONE_GUN.muzzle(), 2.8, 1.0F);
         }
-    }
-
-    protected WeaponMount gunMount() {
-        return WeaponMount.DRONE_GUN;
-    }
-
-    protected boolean gunIgnoresHurtCooldown() {
-        return false;
-    }
-
-    protected void fireGun(LivingEntity target) {
-        WeaponMount mount = this.gunMount();
-        this.launchCyanLaser(target, mount, mount.muzzle(), 2.8, 1.0F, this.gunIgnoresHurtCooldown());
     }
 
     private double getFlightCeiling() {

@@ -1,13 +1,16 @@
 package com.hp.mechafauna;
 
+import com.hp.mechafauna.registry.ModArmorMaterials;
 import com.hp.mechafauna.registry.ModEntities;
 import com.hp.mechafauna.registry.ModItems;
 import com.hp.mechafauna.registry.ModParticles;
 import com.hp.mechafauna.registry.ModSounds;
 import com.hp.mechafauna.network.DroneControlPayload;
+import com.hp.mechafauna.network.FireSupportPayload;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.config.ModConfig;
 
 @Mod(Mechafauna.MOD_ID)
 public final class Mechafauna {
@@ -15,6 +18,7 @@ public final class Mechafauna {
 
     public Mechafauna(IEventBus modEventBus, ModContainer modContainer) {
         ModEntities.ENTITY_TYPES.register(modEventBus);
+        ModArmorMaterials.ARMOR_MATERIALS.register(modEventBus);
         ModItems.ITEMS.register(modEventBus);
         ModItems.CREATIVE_MODE_TABS.register(modEventBus);
         ModParticles.PARTICLE_TYPES.register(modEventBus);
@@ -22,5 +26,7 @@ public final class Mechafauna {
         modEventBus.addListener(ModEntities::registerAttributes);
         modEventBus.addListener(ModItems::addSpawnEggsToCreativeTab);
         modEventBus.addListener(DroneControlPayload::register);
+        modEventBus.addListener(FireSupportPayload::register);
+        modContainer.registerConfig(ModConfig.Type.SERVER, MechafaunaConfig.SPEC);
     }
 }

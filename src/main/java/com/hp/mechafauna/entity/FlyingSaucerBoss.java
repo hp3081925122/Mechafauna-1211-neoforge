@@ -1,5 +1,6 @@
 package com.hp.mechafauna.entity;
 
+import com.hp.mechafauna.MechafaunaConfig;
 import com.hp.mechafauna.registry.ModEntities;
 import com.mojang.logging.LogUtils;
 import java.util.Comparator;
@@ -26,6 +27,7 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
@@ -44,14 +46,22 @@ import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4d;
 import org.joml.Vector3f;
 import org.slf4j.Logger;
+import software.bernie.geckolib.animation.AnimationController;
+import software.bernie.geckolib.animation.PlayState;
+import software.bernie.geckolib.animation.RawAnimation;
+import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.animation.AnimatableManager;
 
 public final class FlyingSaucerBoss extends AnimatedHostileMob {
+    private static final RawAnimation DEATH = RawAnimation.begin().thenPlay("animation.flying_saucer_boss.death");
     private static final Logger LOGGER = LogUtils.getLogger();
-    private static final float BODY_DAMAGE_MULTIPLIER = 0.30F;
+    private static final float BODY_DAMAGE_MULTIPLIER = 0.20F;
     private static final float DESTROYED_WEAPON_DAMAGE_INCREASE = 0.20F;
     private static final float MAX_BODY_DAMAGE_MULTIPLIER = 1.0F;
-    private static final float PART_DESTROY_BODY_DAMAGE = 0.20F;
-    private static final float PART_HEALTH = 80.0F;
+    private static final float PART_DESTROY_BODY_DAMAGE = 0.10F;
+    private static final double BASE_HEALTH = 300.0;
+    /** 部件血量占本体最大生命的比例，300 血时每个部件 80。 */
+    private static final float WEAPON_HEALTH_RATIO = 80.0F / 300.0F;
     private static final int WEAPON_PART_OFFSET = 1;
     private static final float BODY_WIDTH = 6.6F;
     private static final float BODY_HEIGHT = 2.4F;
@@ -75,12 +85,12 @@ public final class FlyingSaucerBoss extends AnimatedHostileMob {
     public static final float WAVE_MAX_RADIUS = 21.0F;
     private static final int LASER_TOTAL_TICKS = LASER_CHARGE_TICKS + LASER_FIRE_TICKS + WAVE_LIFETIME;
     private static final int LASER_COOLDOWN = 240;
-    private static final double LASER_RANGE = 64.0;
+    static final double LASER_RANGE = 64.0;
     private static final double LASER_ALIGN_DISTANCE = 2.5;
     private static final double LASER_ALIGN_HEIGHT = 3.0;
-    private static final double LASER_BEAM_RADIUS = 1.3;
-    private static final float LASER_BEAM_DAMAGE = 8.0F;
-    private static final float WAVE_DAMAGE = 6.0F;
+    static final double LASER_BEAM_RADIUS = 1.3;
+    static final float LASER_BEAM_DAMAGE = 8.0F;
+    static final float WAVE_DAMAGE = 6.0F;
     private static final EntityDataAccessor<Integer> DATA_LASER_TICK = SynchedEntityData.defineId(FlyingSaucerBoss.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Vector3f> DATA_LASER_IMPACT = SynchedEntityData.defineId(FlyingSaucerBoss.class, EntityDataSerializers.VECTOR3);
     private final Set<Long> waveHits = new HashSet<>();
@@ -129,6 +139,12 @@ public final class FlyingSaucerBoss extends AnimatedHostileMob {
         this.updatePartPositions();
         if (!level.isClientSide) {
             this.entityData.set(DATA_BOSS_BAR_ID, Optional.of(this.bossEvent.getId()));
+            AttributeInstance maxHealth = this.getAttribute(Attributes.MAX_HEALTH);
+            if (maxHealth != null) {
+                maxHealth.setBaseValue(MechafaunaConfig.flyingSaucerMaxHealth());
+                this.setHealth(this.getMaxHealth());
+            }
+            this.fillWeaponHealth();
         }
     }
 
@@ -137,7 +153,7 @@ public final class FlyingSaucerBoss extends AnimatedHostileMob {
     }
 
     public static AttributeSupplier.Builder createAttributes() {
-        return createAttributes(300.0, 0.20, 8.0, TARGET_RANGE, 0.75);
+        return createAttributes(BASE_HEALTH, 0.20, 8.0, TARGET_RANGE, 0.75);
     }
 
     @Override
@@ -148,7 +164,7 @@ public final class FlyingSaucerBoss extends AnimatedHostileMob {
         this.targetSelector.addGoal(0, new HurtByTargetGoal(this) {
             @Override
             public boolean canUse() {
-                return !(this.mob.getLastHurtByMob() instanceof AnimatedHostileMob) && super.canUse();
+                return !AnimatedHostileMob.isIgnoredByOtherMechs(this.mob.getLastHurtByMob()) && super.canUse();
             }
         });
         this.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, Player.class, true));
@@ -160,7 +176,7 @@ public final class FlyingSaucerBoss extends AnimatedHostileMob {
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
         for (int i = 0; i < FlyingSaucerWeapon.values().length; i++) {
-            builder.define(DATA_PART_HEALTH.get(i), PART_HEALTH);
+            builder.define(DATA_PART_HEALTH.get(i), weaponHealthFor(BASE_HEALTH));
             builder.define(DATA_WEAPON_YAW.get(i), 0.0F);
             builder.define(DATA_WEAPON_PITCH.get(i), 0.0F);
         }
@@ -227,6 +243,11 @@ public final class FlyingSaucerBoss extends AnimatedHostileMob {
     }
 
     @Override
+    public boolean isInvulnerableTo(DamageSource source) {
+        return this.getSummonTick() > 0 || super.isInvulnerableTo(source);
+    }
+
+    @Override
     public boolean hurt(DamageSource source, float amount) {
         int destroyedWeapons = 0;
         for (int index = 0; index < FlyingSaucerWeapon.values().length; index++) {
@@ -282,6 +303,15 @@ public final class FlyingSaucerBoss extends AnimatedHostileMob {
             this.setHealth(healthBefore - this.getMaxHealth() * PART_DESTROY_BODY_DAMAGE);
             this.keepSummonThreshold(healthBefore);
             LOGGER.info("Saucer weapon destroyed boss={} weapon={} bodyHealth={}/{}", this.getId(), FlyingSaucerWeapon.values()[index], this.getHealth(), this.getMaxHealth());
+            // 部件被摧毁时的爆炸特效
+            Vec3 partPos = part.position();
+            this.level().playSound(null, partPos.x, partPos.y, partPos.z, SoundEvents.GENERIC_EXPLODE.value(),
+                SoundSource.HOSTILE, 2.5F, 0.7F);
+            if (this.level() instanceof ServerLevel serverLevel) {
+                serverLevel.sendParticles(ParticleTypes.EXPLOSION, partPos.x, partPos.y, partPos.z, 3, 0.4, 0.4, 0.4, 0.0);
+                serverLevel.sendParticles(ParticleTypes.LARGE_SMOKE, partPos.x, partPos.y, partPos.z, 8, 0.6, 0.6, 0.6, 0.05);
+                serverLevel.sendParticles(ParticleTypes.LAVA, partPos.x, partPos.y, partPos.z, 6, 0.5, 0.5, 0.5, 0.0);
+            }
             if (this.isDeadOrDying()) {
                 this.die(source);
             }
@@ -293,8 +323,12 @@ public final class FlyingSaucerBoss extends AnimatedHostileMob {
         return this.entityData.get(DATA_BOSS_BAR_ID);
     }
 
-    public static float getWeaponMaxHealth() {
-        return PART_HEALTH;
+    public static float weaponHealthFor(double bossMaxHealth) {
+        return (float)bossMaxHealth * WEAPON_HEALTH_RATIO;
+    }
+
+    public float getWeaponMaxHealth() {
+        return weaponHealthFor(this.getMaxHealth());
     }
 
     public float getWeaponHealth(int index) {
@@ -361,7 +395,8 @@ public final class FlyingSaucerBoss extends AnimatedHostileMob {
 
     private boolean canTarget(LivingEntity target) {
         return target != this && target.isAlive() && this.canAttack(target) && !this.isAlliedTo(target)
-            && (target instanceof Player || target instanceof Mob mob && mob instanceof Enemy && !(mob instanceof AnimatedHostileMob));
+            && (target instanceof Player || target instanceof MilitaryDrone
+                || target instanceof Mob mob && mob instanceof Enemy && !(mob instanceof AnimatedHostileMob));
     }
 
     private void updateWeapons() {
@@ -678,7 +713,7 @@ public final class FlyingSaucerBoss extends AnimatedHostileMob {
         mob.setYHeadRot(yaw);
         mob.yBodyRot = yaw;
         mob.setPersistenceRequired();
-        if (target != null && target.isAlive() && !(target instanceof AnimatedHostileMob)) {
+        if (target != null && target.isAlive() && !AnimatedHostileMob.isIgnoredByOtherMechs(target)) {
             mob.setTarget(target);
         }
         boolean added = this.level().addFreshEntity(mob);
@@ -825,13 +860,21 @@ public final class FlyingSaucerBoss extends AnimatedHostileMob {
     @Override
     public void readAdditionalSaveData(CompoundTag tag) {
         super.readAdditionalSaveData(tag);
+        float partMax = this.getWeaponMaxHealth();
         for (FlyingSaucerWeapon weapon : FlyingSaucerWeapon.values()) {
             String key = "WeaponHealth_" + weapon.name();
-            float health = tag.contains(key) ? tag.getFloat(key) : PART_HEALTH;
-            this.entityData.set(DATA_PART_HEALTH.get(weapon.ordinal()), net.minecraft.util.Mth.clamp(health, 0.0F, PART_HEALTH));
+            float health = tag.contains(key) ? tag.getFloat(key) : partMax;
+            this.entityData.set(DATA_PART_HEALTH.get(weapon.ordinal()), Mth.clamp(health, 0.0F, partMax));
         }
         this.tankSummoned = tag.getBoolean("TankSummoned");
         this.mechSummoned = tag.getBoolean("MechSummoned");
+    }
+
+    private void fillWeaponHealth() {
+        float partMax = this.getWeaponMaxHealth();
+        for (int index = 0; index < FlyingSaucerWeapon.values().length; index++) {
+            this.entityData.set(DATA_PART_HEALTH.get(index), partMax);
+        }
     }
 
     @Override
@@ -883,6 +926,18 @@ public final class FlyingSaucerBoss extends AnimatedHostileMob {
     }
 
     @Override
+    protected void addExtraControllers(AnimatableManager.ControllerRegistrar controllers) {
+        AnimationController<FlyingSaucerBoss> death = new AnimationController<>(this, "death", 0, state -> {
+            if (this.isDeadOrDying()) {
+                state.setAnimation(RawAnimation.begin().thenPlay("animation.flying_saucer_boss.death"));
+                return PlayState.CONTINUE;
+            }
+            return PlayState.STOP;
+        });
+        controllers.add(death);
+    }
+
+    @Override
     public double getCombatHoldDistance() {
         return 28.0;
     }
@@ -898,5 +953,33 @@ public final class FlyingSaucerBoss extends AnimatedHostileMob {
 
     @Override
     protected void onActionTick(String action, int actionTick, LivingEntity target) {
+    }
+
+    @Override
+    protected void tickDeath() {
+        this.deathTime++;
+        // 死亡动画 5 秒后由服务端放爆炸再移除，避免客户端实体先被删掉
+        if (this.deathTime == 100) {
+            if (this.level() instanceof ServerLevel serverLevel) {
+                this.spawnFinalExplosion(serverLevel);
+                this.remove(RemovalReason.KILLED);
+            }
+            return;
+        }
+        this.updatePartPositions();
+    }
+
+    private void spawnFinalExplosion(ServerLevel serverLevel) {
+        double x = this.getX();
+        double y = this.getY() + 2.0;
+        double z = this.getZ();
+        serverLevel.playSound(null, x, y, z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 8.0F, 0.55F);
+        serverLevel.sendParticles(ParticleTypes.EXPLOSION_EMITTER, x, y, z, 40, 3.0, 2.0, 3.0, 0.0);
+        serverLevel.sendParticles(ParticleTypes.SMOKE, x, this.getY(), z, 120, 4.0, 2.0, 4.0, 0.08);
+    }
+
+    @Override
+    public AnimatableInstanceCache getAnimatableInstanceCache() {
+        return super.getAnimatableInstanceCache();
     }
 }

@@ -99,7 +99,7 @@ public final class MechanicalTank extends MechanicalMob {
         double z = this.getZ() + Math.sin(angle) * REINFORCEMENT_DISTANCE;
         wolf.moveTo(x, this.getY(), z, this.random.nextFloat() * 360.0F, 0.0F);
         LivingEntity target = this.getTarget();
-        if (target != null && target.isAlive() && !(target instanceof AnimatedHostileMob)) {
+        if (target != null && target.isAlive() && !AnimatedHostileMob.isIgnoredByOtherMechs(target)) {
             wolf.setTarget(target);
         }
         if (this.level().addFreshEntity(wolf)) {
@@ -118,7 +118,7 @@ public final class MechanicalTank extends MechanicalMob {
         spider.moveTo(x, this.getY(), z, this.random.nextFloat() * 360.0F, 0.0F);
         spider.setSummonerUUID(this.getUUID());
         LivingEntity target = this.getTarget();
-        if (target != null && target.isAlive() && !(target instanceof AnimatedHostileMob)) {
+        if (target != null && target.isAlive() && !AnimatedHostileMob.isIgnoredByOtherMechs(target)) {
             spider.setTarget(target);
         }
         if (this.level().addFreshEntity(spider)) {

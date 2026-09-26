@@ -11,6 +11,7 @@ import net.minecraft.world.damagesource.DamageType;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.ThrowableItemProjectile;
 import net.neoforged.neoforge.entity.PartEntity;
 import net.minecraft.world.item.Item;
@@ -104,7 +105,14 @@ public final class MechProjectile extends ThrowableItemProjectile implements Geo
         if (this.getOwner() instanceof FlyingSaucerBoss && entity instanceof PartEntity<?> part && part.getParent() == this.getOwner()) {
             return false;
         }
-        return !(this.getOwner() instanceof MechanicalDrone drone && drone.isAlliedTo(entity)) && super.canHitEntity(entity);
+        if (this.getOwner() instanceof MechanicalDrone drone && drone.isAlliedTo(entity)) {
+            return false;
+        }
+        if (this.getOwner() instanceof MilitaryDrone drone
+            && (drone.isAlliedTo(entity) || entity instanceof Player || entity instanceof MilitaryDrone)) {
+            return false;
+        }
+        return super.canHitEntity(entity);
     }
 
     @Override

@@ -66,6 +66,7 @@ public final class MechanicalSpider extends MechanicalMob {
     private boolean selfDestructing;
     private LivingEntity overloadTarget;
     private UUID summonerUUID;
+    private int supportTicks = -1;
     private boolean thrownItemSpider;
     private int thrownItemTicks;
 
@@ -81,6 +82,9 @@ public final class MechanicalSpider extends MechanicalMob {
         if (this.summonerUUID != null) {
             tag.putUUID("Summoner", this.summonerUUID);
         }
+        if (this.supportTicks > 0) {
+            tag.putInt("SupportTicks", this.supportTicks);
+        }
     }
 
     @Override
@@ -89,6 +93,7 @@ public final class MechanicalSpider extends MechanicalMob {
         this.thrownItemSpider = tag.getBoolean("ThrownItemSpider");
         this.thrownItemTicks = tag.getInt("ThrownItemTicks");
         this.summonerUUID = tag.hasUUID("Summoner") ? tag.getUUID("Summoner") : null;
+        this.supportTicks = tag.contains("SupportTicks") ? tag.getInt("SupportTicks") : -1;
     }
 
     public void launchFromItem(UUID summonerUUID, Vec3 velocity) {
@@ -114,8 +119,20 @@ public final class MechanicalSpider extends MechanicalMob {
         super.travel(input);
     }
 
+    public void limitLife(int ticks) {
+        this.supportTicks = ticks;
+        this.setPersistenceRequired();
+    }
+
     @Override
     public void tick() {
+        if (!this.level().isClientSide && this.supportTicks > 0) {
+            this.supportTicks--;
+            if (this.supportTicks == 0) {
+                this.discard();
+                return;
+            }
+        }
         double previousX = this.getX();
         double previousY = this.getY();
         double previousZ = this.getZ();
@@ -130,7 +147,7 @@ public final class MechanicalSpider extends MechanicalMob {
             candidate -> candidate != this
                 && candidate.isAlive()
                 && candidate instanceof Enemy
-                && !(candidate instanceof AnimatedHostileMob)
+                && !AnimatedHostileMob.isIgnoredByOtherMechs(candidate)
                 && (this.summonerUUID == null || !this.summonerUUID.equals(candidate.getUUID())))
             .stream()
             .min(java.util.Comparator.comparingDouble(this::distanceToSqr))
@@ -149,8 +166,26 @@ public final class MechanicalSpider extends MechanicalMob {
         this.summonerUUID = summonerUUID;
     }
 
+    public UUID getSummonerUUID() {
+        return this.summonerUUID;
+    }
+
+    @Override
+    public boolean isAlliedTo(Entity other) {
+        return this.summonerUUID != null && (this.summonerUUID.equals(other.getUUID()) || samePlayerSummon(this, other))
+            || super.isAlliedTo(other);
+    }
+
     public boolean isSummonedBy(UUID summonerUUID) {
         return summonerUUID != null && summonerUUID.equals(this.summonerUUID);
+    }
+
+    @Override
+    public boolean canAttack(LivingEntity target) {
+        if (this.summonerUUID != null && (target instanceof Player || !(target instanceof Enemy) || this.isAlliedTo(target))) {
+            return false;
+        }
+        return super.canAttack(target);
     }
 
     @Override
@@ -250,6 +285,27 @@ public final class MechanicalSpider extends MechanicalMob {
         return true;
     }
 
+    private ExplosionDamageCalculator summonerExplosionCalculator() {
+        if (this.summonerUUID == null) {
+            return null;
+        }
+        UUID summoner = this.summonerUUID;
+        return new ExplosionDamageCalculator() {
+            @Override
+            public boolean shouldDamageEntity(Explosion explosion, Entity entity) {
+                return !summoner.equals(entity.getUUID()) && !samePlayerSummon(MechanicalSpider.this, entity)
+                    && super.shouldDamageEntity(explosion, entity);
+            }
+
+            @Override
+            public float getKnockbackMultiplier(Entity entity) {
+                return summoner.equals(entity.getUUID()) || samePlayerSummon(MechanicalSpider.this, entity)
+                    ? 0.0F
+                    : super.getKnockbackMultiplier(entity);
+            }
+        };
+    }
+
     @Override
     protected void tickDeath() {
         this.deathTime++;
@@ -276,20 +332,21 @@ public final class MechanicalSpider extends MechanicalMob {
                     continue;
                 }
                 if (nearbyMob instanceof MechanicalSpider spider) {
+                    if (samePlayerSummon(this, spider)) {
+                        continue;
+                    }
                     spider.primeForDetonation(this.overloadTarget);
                 } else if (nearbyMob instanceof FlameCrawler crawler) {
                     crawler.primeForDetonation(this.overloadTarget);
                 }
             }
             float explosionRadius = this.thrownItemSpider ? THROWN_EXPLOSION_RADIUS : EXPLOSION_RADIUS;
+            ExplosionDamageCalculator calculator = this.thrownItemSpider ? THROWN_EXPLOSION_DAMAGE_CALCULATOR : this.summonerExplosionCalculator();
             if (this.thrownItemSpider) {
                 LOGGER.debug("Thrown mechanical spider detonating entity={} radius={} rangeMultiplier=1.0 damageMultiplier={}", this.getId(), explosionRadius, THROWN_EXPLOSION_DAMAGE_MULTIPLIER);
-                ExplosionEffects.explode(this.level(), this, null, THROWN_EXPLOSION_DAMAGE_CALCULATOR,
-                    this.getX(), this.getY() + 0.3, this.getZ(), explosionRadius);
-            } else {
-                ExplosionEffects.explode(this.level(), this, null, null,
-                    this.getX(), this.getY() + 0.3, this.getZ(), explosionRadius);
             }
+            ExplosionEffects.explode(this.level(), this, null, calculator,
+                this.getX(), this.getY() + 0.3, this.getZ(), explosionRadius);
         }
         if (this.deathTime >= DEATH_CLEANUP_TICKS && !this.level().isClientSide && !this.isRemoved()) {
             LOGGER.debug("Mechanical spider death animation cleanup entity={} deathTime={} animationLengthTicks={}", this.getId(), this.deathTime, DEATH_ANIMATION_TICKS);

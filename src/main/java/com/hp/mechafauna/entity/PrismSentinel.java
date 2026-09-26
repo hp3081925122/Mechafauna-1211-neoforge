@@ -7,12 +7,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
@@ -47,6 +49,8 @@ public final class PrismSentinel extends MechanicalMob {
     private final Map<Integer, Integer> lastSweepHitCycle = new HashMap<>();
     private int laserTargetId = -1;
     private int sharedAttackCooldown;
+    private int supportTicks = -1;
+    private UUID supportOwner;
     private float clientYaw;
     private float clientYawOld;
     private float clientPitch;
@@ -74,12 +78,86 @@ public final class PrismSentinel extends MechanicalMob {
         builder.define(DATA_BODY_PITCH, 0.0F);
     }
 
+    public void assignSupport(Player owner, int lifeTicks) {
+        this.supportOwner = owner.getUUID();
+        this.supportTicks = lifeTicks;
+        this.setPersistenceRequired();
+        this.setTarget(null);
+    }
+
+    public UUID getSupportOwner() {
+        return this.supportOwner;
+    }
+
+    private void retargetSupport() {
+        LivingEntity current = this.getTarget();
+        if (current != null && current.isAlive() && this.canAttack(current)) {
+            return;
+        }
+        double range = this.getAttributeValue(Attributes.FOLLOW_RANGE);
+        AABB area = this.getBoundingBox().inflate(range, 8.0, range);
+        LivingEntity nearest = null;
+        double nearestDistance = range * range;
+        for (LivingEntity entity : this.level().getEntitiesOfClass(LivingEntity.class, area, candidate -> candidate != this && this.canAttack(candidate))) {
+            double distance = this.distanceToSqr(entity);
+            if (distance < nearestDistance) {
+                nearest = entity;
+                nearestDistance = distance;
+            }
+        }
+        if (this.getTarget() != nearest) {
+            this.setTarget(nearest);
+        }
+    }
+
+    @Override
+    public boolean isAlliedTo(Entity other) {
+        return this.supportOwner != null && (this.supportOwner.equals(other.getUUID()) || samePlayerSummon(this, other))
+            || super.isAlliedTo(other);
+    }
+
+    @Override
+    public boolean canAttack(LivingEntity target) {
+        if (this.supportOwner != null && (target instanceof Player || !(target instanceof net.minecraft.world.entity.monster.Enemy) || this.isAlliedTo(target))) {
+            return false;
+        }
+        return super.canAttack(target);
+    }
+
+    @Override
+    public void addAdditionalSaveData(net.minecraft.nbt.CompoundTag tag) {
+        super.addAdditionalSaveData(tag);
+        if (this.supportOwner != null) {
+            tag.putUUID("SupportOwner", this.supportOwner);
+        }
+        if (this.supportTicks > 0) {
+            tag.putInt("SupportTicks", this.supportTicks);
+        }
+    }
+
+    @Override
+    public void readAdditionalSaveData(net.minecraft.nbt.CompoundTag tag) {
+        super.readAdditionalSaveData(tag);
+        this.supportOwner = tag.hasUUID("SupportOwner") ? tag.getUUID("SupportOwner") : null;
+        this.supportTicks = tag.contains("SupportTicks") ? tag.getInt("SupportTicks") : -1;
+    }
+
     @Override
     public void tick() {
+        if (!this.level().isClientSide && this.supportOwner != null) {
+            this.retargetSupport();
+        }
         if (!this.level().isClientSide && this.sharedAttackCooldown > 0) {
             this.sharedAttackCooldown--;
         }
         super.tick();
+        if (!this.level().isClientSide && this.supportTicks > 0) {
+            this.supportTicks--;
+            if (this.supportTicks == 0) {
+                this.discard();
+                return;
+            }
+        }
         if (this.level().isClientSide) {
             float yaw = this.entityData.get(DATA_LASER_YAW);
             float pitch = this.entityData.get(DATA_LASER_PITCH);
@@ -92,9 +170,9 @@ public final class PrismSentinel extends MechanicalMob {
             this.clientYawOld = this.clientYaw;
             this.clientPitchOld = this.clientPitch;
             this.clientBodyPitchOld = this.clientBodyPitch;
-            this.clientYaw = Mth.approachDegrees(this.clientYaw, yaw, 3.0F);
-            this.clientPitch = Mth.approachDegrees(this.clientPitch, pitch, 3.0F);
-            this.clientBodyPitch = Mth.approachDegrees(this.clientBodyPitch, bodyPitch, 3.0F);
+            this.clientYaw = Mth.approachDegrees(this.clientYaw, yaw, 12.0F);
+            this.clientPitch = Mth.approachDegrees(this.clientPitch, pitch, 12.0F);
+            this.clientBodyPitch = Mth.approachDegrees(this.clientBodyPitch, bodyPitch, 12.0F);
             this.clientTracking = this.isPerformingAction();
         } else if (this.isPerformingAction()) {
             float yaw = this.entityData.get(DATA_LASER_YAW);
@@ -126,6 +204,13 @@ public final class PrismSentinel extends MechanicalMob {
 
     @Override
     protected boolean shouldContinueAction(String action, int actionTick, LivingEntity target) {
+        if (this.supportOwner != null && LASER.equals(action)) {
+            if (!target.isAlive() || !this.canAttack(target) || this.distanceToSqr(target) > LASER_RANGE * LASER_RANGE) {
+                return false;
+            }
+            this.laserTargetId = target.getId();
+            return true;
+        }
         return (LASER.equals(action) || LASER_SWEEP.equals(action))
             && target.isAlive()
             && target.getId() == this.laserTargetId
@@ -140,7 +225,13 @@ public final class PrismSentinel extends MechanicalMob {
 
     @Override
     public List<String> getAvailableActions(LivingEntity target, double distanceSquared) {
-        if (this.sharedAttackCooldown > 0 || distanceSquared < 5.0 * 5.0 || distanceSquared > LASER_RANGE * LASER_RANGE) {
+        if (distanceSquared < 5.0 * 5.0 || distanceSquared > LASER_RANGE * LASER_RANGE) {
+            return List.of();
+        }
+        if (this.supportOwner != null) {
+            return List.of(LASER);
+        }
+        if (this.sharedAttackCooldown > 0) {
             return List.of();
         }
         return this.random.nextInt(5) == 0 ? List.of(LASER_SWEEP) : List.of(LASER);
@@ -148,12 +239,15 @@ public final class PrismSentinel extends MechanicalMob {
 
     @Override
     public int getActionDuration(String action) {
+        if (this.supportOwner != null && LASER.equals(action)) {
+            return Integer.MAX_VALUE;
+        }
         return LASER_END_TICK + 8;
     }
 
     @Override
     public int getActionCooldown(String action) {
-        return SHARED_ATTACK_COOLDOWN;
+        return this.supportOwner != null ? 0 : SHARED_ATTACK_COOLDOWN;
     }
 
     @Override
@@ -175,7 +269,9 @@ public final class PrismSentinel extends MechanicalMob {
     protected void onActionStarted(String action, LivingEntity target) {
         if (LASER.equals(action) || LASER_SWEEP.equals(action)) {
             this.laserTargetId = target.getId();
-            this.sharedAttackCooldown = SHARED_ATTACK_COOLDOWN;
+            if (this.supportOwner == null) {
+                this.sharedAttackCooldown = SHARED_ATTACK_COOLDOWN;
+            }
             this.lastSweepHitCycle.clear();
             this.entityData.set(DATA_LASER_TICK, 0);
             this.entityData.set(DATA_LASER_YAW, this.yBodyRot);
@@ -190,15 +286,18 @@ public final class PrismSentinel extends MechanicalMob {
         if (!LASER.equals(action) && !LASER_SWEEP.equals(action)) {
             return;
         }
-        this.entityData.set(DATA_LASER_TICK, actionTick);
+        this.entityData.set(DATA_LASER_TICK, this.supportOwner != null && LASER.equals(action) && actionTick >= LASER_FIRE_TICK
+            ? LASER_FIRE_TICK + (actionTick - LASER_FIRE_TICK) % LASER_FIRE_DURATION
+            : actionTick);
         Vec3 aimOrigin = this.position().add(0, 12.15 / 16.0 * this.getModelScale(), 0);
         Vec3 offset = target.getBoundingBox().getCenter().subtract(aimOrigin);
         float wantedYaw = (float)Math.toDegrees(Math.atan2(-offset.x, offset.z));
         float wantedPitch = (float)-Math.toDegrees(Math.atan2(offset.y, offset.horizontalDistance()));
-        this.entityData.set(DATA_LASER_YAW, Mth.approachDegrees(this.entityData.get(DATA_LASER_YAW), wantedYaw, 1.5F));
-        this.entityData.set(DATA_LASER_PITCH, Mth.approachDegrees(this.entityData.get(DATA_LASER_PITCH), wantedPitch, 1.5F));
+        float turnSpeed = this.supportOwner != null ? 12.0F : 1.5F;
+        this.entityData.set(DATA_LASER_YAW, Mth.approachDegrees(this.entityData.get(DATA_LASER_YAW), wantedYaw, turnSpeed));
+        this.entityData.set(DATA_LASER_PITCH, Mth.approachDegrees(this.entityData.get(DATA_LASER_PITCH), wantedPitch, turnSpeed));
         float wantedBodyPitch = Mth.clamp(wantedPitch, 0.0F, 42.0F);
-        this.entityData.set(DATA_BODY_PITCH, Mth.approach(this.entityData.get(DATA_BODY_PITCH), wantedBodyPitch, 1.5F));
+        this.entityData.set(DATA_BODY_PITCH, Mth.approach(this.entityData.get(DATA_BODY_PITCH), wantedBodyPitch, turnSpeed));
         if (!this.isLaserFiring()) {
             return;
         }
@@ -338,7 +437,8 @@ public final class PrismSentinel extends MechanicalMob {
         ArrayList<BeamEntityHit> hits = new ArrayList<>();
         for (LivingEntity candidate : this.level().getEntitiesOfClass(LivingEntity.class,
             new AABB(origin, end).inflate(0.12), entity -> entity != this && entity.isAlive()
-                && !(entity instanceof MechanicalMob) && !this.isAlliedTo(entity)
+                && (!(entity instanceof MechanicalMob) || entity instanceof MilitaryDrone) && !this.isAlliedTo(entity)
+                && !(this.supportOwner != null && entity instanceof Player)
                 && !(entity instanceof Player player && (player.isSpectator() || player.isCreative())))) {
             AABB box = candidate.getBoundingBox().inflate(0.09);
             Vec3 hit = box.contains(origin) ? origin : box.clip(origin, end).orElse(null);

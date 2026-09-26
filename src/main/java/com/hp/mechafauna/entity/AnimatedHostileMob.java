@@ -9,6 +9,7 @@ import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
@@ -36,6 +37,10 @@ import software.bernie.geckolib.animation.RawAnimation;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 public abstract class AnimatedHostileMob extends Monster implements GeoEntity {
+    public static boolean isIgnoredByOtherMechs(Entity entity) {
+        return entity instanceof AnimatedHostileMob && !(entity instanceof MilitaryDrone);
+    }
+
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final EntityDataAccessor<String> DATA_ACTION = SynchedEntityData.defineId(AnimatedHostileMob.class, EntityDataSerializers.STRING);
     private static final EntityDataAccessor<Integer> DATA_TARGET_ID = SynchedEntityData.defineId(AnimatedHostileMob.class, EntityDataSerializers.INT);
@@ -157,7 +162,7 @@ public abstract class AnimatedHostileMob extends Monster implements GeoEntity {
         this.targetSelector.addGoal(0, new HurtByTargetGoal(this) {
             @Override
             public boolean canUse() {
-                return !(this.mob.getLastHurtByMob() instanceof AnimatedHostileMob) && super.canUse();
+                return !isIgnoredByOtherMechs(this.mob.getLastHurtByMob()) && super.canUse();
             }
 
             @Override
