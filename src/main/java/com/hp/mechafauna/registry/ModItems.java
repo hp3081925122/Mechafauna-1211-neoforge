@@ -2,6 +2,8 @@ package com.hp.mechafauna.registry;
 
 import com.hp.mechafauna.Mechafauna;
 import com.hp.mechafauna.item.MechanicalSpiderThrowableItem;
+import com.hp.mechafauna.item.MilitaryDroneItem;
+import com.hp.mechafauna.item.MechanicalWolfSummonItem;
 import com.hp.mechafauna.item.PrismCoreItem;
 import com.hp.mechafauna.item.WeaponizedDroneItem;
 import net.minecraft.core.registries.Registries;
@@ -21,7 +23,9 @@ public final class ModItems {
     public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, Mechafauna.MOD_ID);
 
     public static final Supplier<? extends Item> MECHANICAL_SCRAP = ITEMS.registerSimpleItem("mechanical_scrap");
+    public static final Supplier<? extends Item> MECHANICAL_WOLF_SUMMON = ITEMS.register("mechanical_wolf_summon", MechanicalWolfSummonItem::new);
     public static final Supplier<? extends Item> WEAPONIZED_DRONE = ITEMS.register("weaponized_drone", WeaponizedDroneItem::new);
+    public static final Supplier<? extends Item> MILITARY_DRONE = ITEMS.register("military_drone", MilitaryDroneItem::new);
     public static final Supplier<? extends Item> MECHANICAL_SPIDER_THROWABLE = ITEMS.register("mechanical_spider_throwable", MechanicalSpiderThrowableItem::new);
     public static final Supplier<? extends Item> PRISM_CORE = ITEMS.register("prism_core", PrismCoreItem::new);
 
@@ -53,6 +57,10 @@ public final class ModItems {
         "prism_sentinel_spawn_egg",
         () -> new DeferredSpawnEggItem(ModEntities.PRISM_SENTINEL, 0x263648, 0x43D9DC, new Item.Properties())
     );
+    public static final Supplier<? extends Item> FLYING_SAUCER_BOSS_SPAWN_EGG = ITEMS.register(
+        "flying_saucer_boss_spawn_egg",
+        () -> new DeferredSpawnEggItem(ModEntities.FLYING_SAUCER_BOSS, 0x58636B, 0x12B7CA, new Item.Properties())
+    );
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> MECHAFAUNA_TAB = CREATIVE_MODE_TABS.register("main", () -> CreativeModeTab.builder()
         .title(Component.translatable("itemGroup.mechafauna.main"))
         .icon(() -> new ItemStack(MECHANICAL_WOLF_SPAWN_EGG.get()))
@@ -64,8 +72,11 @@ public final class ModItems {
             output.accept(HEAVY_MECH_SPAWN_EGG.get());
             output.accept(FLAME_CRAWLER_SPAWN_EGG.get());
             output.accept(PRISM_SENTINEL_SPAWN_EGG.get());
+            output.accept(FLYING_SAUCER_BOSS_SPAWN_EGG.get());
             output.accept(MECHANICAL_SCRAP.get());
+            output.accept(MECHANICAL_WOLF_SUMMON.get());
             output.accept(WEAPONIZED_DRONE.get());
+            output.accept(MILITARY_DRONE.get());
             output.accept(MECHANICAL_SPIDER_THROWABLE.get());
             output.accept(PRISM_CORE.get());
         })
@@ -83,8 +94,11 @@ public final class ModItems {
             event.accept(HEAVY_MECH_SPAWN_EGG.get());
             event.accept(FLAME_CRAWLER_SPAWN_EGG.get());
             event.accept(PRISM_SENTINEL_SPAWN_EGG.get());
+            event.accept(FLYING_SAUCER_BOSS_SPAWN_EGG.get());
             event.accept(MECHANICAL_SCRAP.get());
+            event.accept(MECHANICAL_WOLF_SUMMON.get());
             event.accept(WEAPONIZED_DRONE.get());
+            event.accept(MILITARY_DRONE.get());
             event.accept(MECHANICAL_SPIDER_THROWABLE.get());
             event.accept(PRISM_CORE.get());
         }

@@ -1,0 +1,10 @@
+{
+  "music.flying_saucer_boss": {
+    "sounds": [
+      {
+        "name": "mechafauna:music/flying_saucer_boss",
+        "stream": true
+      }
+    ]
+  }
+}

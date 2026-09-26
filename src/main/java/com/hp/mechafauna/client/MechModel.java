@@ -4,7 +4,10 @@ import com.hp.mechafauna.Mechafauna;
 import com.hp.mechafauna.entity.AnimatedHostileMob;
 import com.hp.mechafauna.entity.HeavyMech;
 import com.hp.mechafauna.entity.FlameCrawler;
+import com.hp.mechafauna.entity.FlyingSaucerBoss;
+import com.hp.mechafauna.entity.FlyingSaucerWeapon;
 import com.hp.mechafauna.entity.MechanicalDrone;
+import com.hp.mechafauna.entity.MilitaryDrone;
 import com.hp.mechafauna.entity.MechanicalSpider;
 import com.hp.mechafauna.entity.MechanicalTank;
 import com.hp.mechafauna.entity.PrismSentinel;
@@ -53,8 +56,38 @@ public final class MechModel<T extends AnimatedHostileMob & GeoAnimatable> exten
     public void setCustomAnimations(T entity, long instanceId, AnimationState<T> animationState) {
         super.setCustomAnimations(entity, instanceId, animationState);
         float partialTick = animationState.getPartialTick();
-        if (entity instanceof MechanicalTank) {
+        if (entity instanceof FlyingSaucerBoss saucer) {
+            this.getBone("core_rings").ifPresent(bone -> {
+                bone.updateRotation(0.0F, (saucer.tickCount + partialTick) * 0.025F, 0.0F);
+                bone.resetStateChanges();
+            });
+            for (FlyingSaucerWeapon weapon : FlyingSaucerWeapon.values()) {
+                boolean destroyed = saucer.isWeaponDestroyed(weapon.ordinal());
+                this.getBone(weapon.yawBone()).ifPresent(bone -> {
+                    bone.setHidden(destroyed);
+                    bone.setChildrenHidden(destroyed);
+                    bone.updateRotation(0.0F, (float)Math.toRadians(saucer.getWeaponYawDegrees(weapon)), 0.0F);
+                    bone.resetStateChanges();
+                });
+                this.getBone(weapon.pitchBone()).ifPresent(bone -> {
+                    bone.updateRotation(0.0F, 0.0F, (float)Math.toRadians(saucer.getWeaponPitchDegrees(weapon)));
+                    bone.resetStateChanges();
+                });
+                if (weapon.barrelBone() != null) {
+                    this.getBone(weapon.barrelBone()).ifPresent(bone -> {
+                        bone.setRotX((saucer.tickCount + partialTick) * 0.48F);
+                        bone.resetStateChanges();
+                    });
+                }
+            }
+        } else if (entity instanceof MechanicalTank) {
             this.aimWeapon(entity, WeaponMount.TANK_CANNON, partialTick);
+        } else if (entity instanceof MilitaryDrone) {
+            this.aimWeapon(entity, WeaponMount.MILITARY_DRONE_GUN, partialTick);
+            this.getBone("gun_spin").ifPresent(bone -> {
+                bone.setRotZ(bone.getInitialSnapshot().getRotZ() + (entity.tickCount + partialTick) * 0.45F);
+                bone.resetStateChanges();
+            });
         } else if (entity instanceof MechanicalDrone) {
             this.aimWeapon(entity, WeaponMount.DRONE_GUN, partialTick);
         } else if (entity instanceof HeavyMech) {

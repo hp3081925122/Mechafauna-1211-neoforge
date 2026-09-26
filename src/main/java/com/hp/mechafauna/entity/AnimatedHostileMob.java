@@ -328,11 +328,11 @@ public abstract class AnimatedHostileMob extends Monster implements GeoEntity {
         if (target == null) {
             return;
         }
-        this.launchProjectileInternal(target, mount, muzzle, target.getBoundingBox().getCenter(), missile, laser, false, speed, impactDamage);
+        this.launchProjectileInternal(target, mount, muzzle, target.getBoundingBox().getCenter(), missile, laser, false, speed, impactDamage, false);
     }
 
     protected final void launchProjectile(LivingEntity target, WeaponMount mount, Vec3 muzzle, Vec3 aimPoint, boolean missile, boolean laser, double speed, float impactDamage) {
-        this.launchProjectileInternal(target, mount, muzzle, aimPoint, missile, laser, false, speed, impactDamage);
+        this.launchProjectileInternal(target, mount, muzzle, aimPoint, missile, laser, false, speed, impactDamage, false);
     }
 
     protected final void launchCyanLaser(LivingEntity target, WeaponMount mount, Vec3 muzzle, double speed, float impactDamage) {
@@ -343,17 +343,28 @@ public abstract class AnimatedHostileMob extends Monster implements GeoEntity {
     }
 
     protected final void launchCyanLaser(LivingEntity target, WeaponMount mount, Vec3 muzzle, Vec3 aimPoint, double speed, float impactDamage) {
-        this.launchProjectileInternal(target, mount, muzzle, aimPoint, false, true, false, speed, impactDamage);
+        this.launchCyanLaser(target, mount, muzzle, aimPoint, speed, impactDamage, false);
+    }
+
+    protected final void launchCyanLaser(LivingEntity target, WeaponMount mount, Vec3 muzzle, double speed, float impactDamage, boolean bypassHurtCooldown) {
+        if (target == null) {
+            return;
+        }
+        this.launchCyanLaser(target, mount, muzzle, target.getBoundingBox().getCenter(), speed, impactDamage, bypassHurtCooldown);
+    }
+
+    protected final void launchCyanLaser(LivingEntity target, WeaponMount mount, Vec3 muzzle, Vec3 aimPoint, double speed, float impactDamage, boolean bypassHurtCooldown) {
+        this.launchProjectileInternal(target, mount, muzzle, aimPoint, false, true, false, speed, impactDamage, bypassHurtCooldown);
     }
 
     protected final void launchPrismLaserFromPosition(LivingEntity target, Vec3 muzzle, double speed, float impactDamage) {
         if (target == null) {
             return;
         }
-        this.launchProjectileInternal(target, null, muzzle, target.getBoundingBox().getCenter(), false, true, true, speed, impactDamage);
+        this.launchProjectileInternal(target, null, muzzle, target.getBoundingBox().getCenter(), false, true, true, speed, impactDamage, false);
     }
 
-    private void launchProjectileInternal(LivingEntity target, WeaponMount mount, Vec3 muzzle, Vec3 aimPoint, boolean missile, boolean laser, boolean prismLaser, double speed, float impactDamage) {
+    private void launchProjectileInternal(LivingEntity target, WeaponMount mount, Vec3 muzzle, Vec3 aimPoint, boolean missile, boolean laser, boolean prismLaser, double speed, float impactDamage, boolean bypassHurtCooldown) {
         if (this.level().isClientSide || target == null || !target.isAlive() || aimPoint == null) {
             return;
         }
@@ -375,6 +386,7 @@ public abstract class AnimatedHostileMob extends Monster implements GeoEntity {
         }
         Vec3 aim = aimPoint.subtract(start).normalize();
         MechProjectile projectile = new MechProjectile(com.hp.mechafauna.registry.ModEntities.MECH_PROJECTILE.get(), this.level(), this, missile, laser, prismLaser, impactDamage);
+        projectile.setBypassHurtCooldown(bypassHurtCooldown);
         projectile.setPos(start.x, start.y, start.z);
         projectile.shoot(aim.x, aim.y, aim.z, (float)speed, 0.0F);
         this.level().addFreshEntity(projectile);

@@ -2,14 +2,17 @@ package com.hp.mechafauna.registry;
 
 import com.hp.mechafauna.Mechafauna;
 import com.hp.mechafauna.entity.HeavyMech;
+import com.hp.mechafauna.entity.FlyingSaucerBoss;
 import com.hp.mechafauna.entity.FlameCrawler;
 import com.hp.mechafauna.entity.MechProjectile;
 import com.hp.mechafauna.entity.PrismBeam;
 import com.hp.mechafauna.entity.MechanicalDrone;
+import com.hp.mechafauna.entity.MilitaryDrone;
 import com.hp.mechafauna.entity.MechanicalSpider;
 import com.hp.mechafauna.entity.MechanicalTank;
 import com.hp.mechafauna.entity.MechanicalWolf;
 import com.hp.mechafauna.entity.PrismSentinel;
+import com.hp.mechafauna.entity.RideableMechanicalWolf;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
@@ -22,6 +25,14 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 public final class ModEntities {
     public static final DeferredRegister<EntityType<?>> ENTITY_TYPES = DeferredRegister.create(Registries.ENTITY_TYPE, Mechafauna.MOD_ID);
 
+    public static final DeferredHolder<EntityType<?>, EntityType<RideableMechanicalWolf>> RIDEABLE_MECHANICAL_WOLF = ENTITY_TYPES.register(
+        "rideable_mechanical_wolf",
+        () -> EntityType.Builder.of(RideableMechanicalWolf::new, MobCategory.CREATURE)
+            .sized(1.25F, 1.2F)
+            .passengerAttachments(new Vec3(0.0, 0.9, 0.0))
+            .clientTrackingRange(10)
+            .build("mechafauna:rideable_mechanical_wolf")
+    );
     public static final DeferredHolder<EntityType<?>, EntityType<MechanicalWolf>> MECHANICAL_WOLF = ENTITY_TYPES.register(
         "mechanical_wolf",
         () -> EntityType.Builder.of(MechanicalWolf::new, MobCategory.MONSTER).sized(1.25F, 1.2F).clientTrackingRange(10).build("mechafauna:mechanical_wolf")
@@ -33,6 +44,10 @@ public final class ModEntities {
     public static final DeferredHolder<EntityType<?>, EntityType<MechanicalDrone>> MECHANICAL_DRONE = ENTITY_TYPES.register(
         "mechanical_drone",
         () -> EntityType.Builder.of(MechanicalDrone::new, MobCategory.MONSTER).sized(2.4F, 1.4F).passengerAttachments(new Vec3(0.0, -0.46, -0.2875)).clientTrackingRange(12).build("mechafauna:mechanical_drone")
+    );
+    public static final DeferredHolder<EntityType<?>, EntityType<MilitaryDrone>> MILITARY_DRONE = ENTITY_TYPES.register(
+        "military_drone",
+        () -> EntityType.Builder.of(MilitaryDrone::new, MobCategory.MONSTER).sized(2.4F, 1.4F).passengerAttachments(new Vec3(0.0, -0.46, -0.2875)).clientTrackingRange(12).build("mechafauna:military_drone")
     );
     public static final DeferredHolder<EntityType<?>, EntityType<MechanicalSpider>> MECHANICAL_SPIDER = ENTITY_TYPES.register(
         "mechanical_spider",
@@ -50,6 +65,10 @@ public final class ModEntities {
         "prism_sentinel",
         () -> EntityType.Builder.of(PrismSentinel::new, MobCategory.MONSTER).sized(1.45F, 1.55F).clientTrackingRange(12).build("mechafauna:prism_sentinel")
     );
+    public static final DeferredHolder<EntityType<?>, EntityType<FlyingSaucerBoss>> FLYING_SAUCER_BOSS = ENTITY_TYPES.register(
+        "flying_saucer_boss",
+        () -> EntityType.Builder.of(FlyingSaucerBoss::new, MobCategory.MONSTER).sized(10.4F, 5.6F).clientTrackingRange(32).updateInterval(1).build("mechafauna:flying_saucer_boss")
+    );
     public static final DeferredHolder<EntityType<?>, EntityType<MechProjectile>> MECH_PROJECTILE = ENTITY_TYPES.register(
         "mech_projectile",
         () -> EntityType.Builder.<MechProjectile>of(MechProjectile::new, MobCategory.MISC).sized(0.28F, 0.28F).clientTrackingRange(10).updateInterval(1).build("mechafauna:mech_projectile")
@@ -63,12 +82,15 @@ public final class ModEntities {
     }
 
     public static void registerAttributes(EntityAttributeCreationEvent event) {
+        event.put(RIDEABLE_MECHANICAL_WOLF.get(), RideableMechanicalWolf.createAttributes().build());
         event.put(MECHANICAL_WOLF.get(), MechanicalWolf.createAttributes().build());
         event.put(MECHANICAL_TANK.get(), MechanicalTank.createAttributes().build());
         event.put(MECHANICAL_DRONE.get(), MechanicalDrone.createAttributes().build());
+        event.put(MILITARY_DRONE.get(), MilitaryDrone.createAttributes().build());
         event.put(MECHANICAL_SPIDER.get(), MechanicalSpider.createAttributes().build());
         event.put(HEAVY_MECH.get(), HeavyMech.createAttributes().build());
         event.put(FLAME_CRAWLER.get(), FlameCrawler.createAttributes().build());
         event.put(PRISM_SENTINEL.get(), PrismSentinel.createAttributes().build());
+        event.put(FLYING_SAUCER_BOSS.get(), FlyingSaucerBoss.createAttributes().build());
     }
 }

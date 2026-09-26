@@ -1,10 +1,18 @@
 package com.hp.mechafauna.entity;
 
+import com.hp.mechafauna.Mechafauna;
 import com.mojang.logging.LogUtils;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.damagesource.DamageType;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.projectile.ThrowableItemProjectile;
+import net.neoforged.neoforge.entity.PartEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -26,8 +34,11 @@ public final class MechProjectile extends ThrowableItemProjectile implements Geo
             return 0.5F;
         }
     };
+    private static final ResourceKey<DamageType> MILITARY_DRONE = ResourceKey.create(
+        Registries.DAMAGE_TYPE, ResourceLocation.fromNamespaceAndPath(Mechafauna.MOD_ID, "military_drone"));
     private final AnimatableInstanceCache animationCache = GeckoLibUtil.createInstanceCache(this);
     private float impactDamage;
+    private boolean bypassHurtCooldown;
 
     public MechProjectile(EntityType<? extends MechProjectile> entityType, Level level) {
         super(entityType, level);
@@ -59,6 +70,22 @@ public final class MechProjectile extends ThrowableItemProjectile implements Geo
         return this.getItem().is(Items.AMETHYST_SHARD);
     }
 
+    public void setBypassHurtCooldown(boolean bypassHurtCooldown) {
+        this.bypassHurtCooldown = bypassHurtCooldown;
+    }
+
+    @Override
+    public void addAdditionalSaveData(CompoundTag tag) {
+        super.addAdditionalSaveData(tag);
+        tag.putBoolean("BypassCooldown", this.bypassHurtCooldown);
+    }
+
+    @Override
+    public void readAdditionalSaveData(CompoundTag tag) {
+        super.readAdditionalSaveData(tag);
+        this.bypassHurtCooldown = tag.getBoolean("BypassCooldown");
+    }
+
     @Override
     public void tick() {
         super.tick();
@@ -74,6 +101,9 @@ public final class MechProjectile extends ThrowableItemProjectile implements Geo
 
     @Override
     protected boolean canHitEntity(Entity entity) {
+        if (this.getOwner() instanceof FlyingSaucerBoss && entity instanceof PartEntity<?> part && part.getParent() == this.getOwner()) {
+            return false;
+        }
         return !(this.getOwner() instanceof MechanicalDrone drone && drone.isAlliedTo(entity)) && super.canHitEntity(entity);
     }
 
@@ -88,17 +118,21 @@ public final class MechProjectile extends ThrowableItemProjectile implements Geo
         if (this.isLaserTracer()) {
             if (!this.level().isClientSide) {
                 boolean damageApplied = false;
-                if (hit.getEntity() instanceof LivingEntity target) {
-                    damageApplied = target.hurt(this.damageSources().thrown(this, this.getOwner()), this.impactDamage);
+                Entity target = hit.getEntity();
+                if (target instanceof LivingEntity || target instanceof SaucerDamagePart) {
+                    damageApplied = target.hurt(this.impactSource(), this.impactDamage);
                 }
                 LOGGER.debug("Mech laser collision projectile={} target={} damage={} applied={}", this.getId(), hit.getEntity().getId(), this.impactDamage, damageApplied);
                 this.discard();
             }
             return;
         }
-        if (!this.level().isClientSide && hit.getEntity() instanceof LivingEntity livingTarget) {
-            float damage = this.getItem().is(Items.FIREWORK_ROCKET) ? 4.0F : 8.0F;
-            livingTarget.hurt(this.damageSources().thrown(this, this.getOwner()), damage);
+        if (!this.level().isClientSide) {
+            Entity livingTarget = hit.getEntity();
+            if (livingTarget instanceof LivingEntity || livingTarget instanceof SaucerDamagePart) {
+                float damage = this.getItem().is(Items.FIREWORK_ROCKET) ? 4.0F : 8.0F;
+                livingTarget.hurt(this.impactSource(), damage);
+            }
         }
     }
 
@@ -116,6 +150,13 @@ public final class MechProjectile extends ThrowableItemProjectile implements Geo
                 PROJECTILE_EXPLOSION_CALCULATOR, this.getX(), this.getY(), this.getZ(), radius);
             this.discard();
         }
+    }
+
+    private DamageSource impactSource() {
+        if (this.bypassHurtCooldown) {
+            return this.damageSources().source(MILITARY_DRONE, this, this.getOwner());
+        }
+        return this.damageSources().thrown(this, this.getOwner());
     }
 
     @Override

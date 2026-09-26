@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "equipment",
+  "ingredients": [
+    {
+      "item": "minecraft:bone"
+    },
+    {
+      "item": "mechafauna:mechanical_scrap"
+    }
+  ],
+  "result": {
+    "id": "mechafauna:mechanical_wolf_summon",
+    "count": 1
+  }
+}

@@ -44,9 +44,10 @@ public final class WeaponPose {
 
     public Matrix4d parentTransform(WeaponMount mount, Matrix4d modelToWorld, String animation, double seconds,
                                     double bodyPitchRadians) {
-        this.applyBone(modelToWorld, this.bones.get(mount.yawBone()).parent(), animation, seconds, bodyPitchRadians);
+        Matrix4d transform = new Matrix4d(modelToWorld);
+        this.applyBone(transform, this.bones.get(mount.yawBone()).parent(), animation, seconds, bodyPitchRadians);
         Vec3 position = this.sample(animation, mount.yawBone(), "position", seconds, Vec3.ZERO);
-        return modelToWorld.translate(-position.x, position.y, position.z);
+        return transform.translate(-position.x, position.y, position.z);
     }
 
     public Vec3 muzzle(WeaponMount mount, Vec3 muzzle, String animation, double seconds) {
@@ -57,6 +58,20 @@ public final class WeaponPose {
             ? WeaponMount.transform(this.boneTransform("gun_spin", animation, seconds), muzzle)
             : muzzle;
         return recoil == null ? animatedMuzzle : WeaponMount.transform(this.boneTransform(recoil, animation, seconds), animatedMuzzle);
+    }
+
+    public Vec3 bonePivot(String name) {
+        Bone bone = this.bones.get(name);
+        if (bone == null) {
+            throw new IllegalArgumentException("Unknown model bone: " + name);
+        }
+        return bone.pivot();
+    }
+
+    public Vec3 transformBonePoint(String name, Vec3 point) {
+        Matrix4d transform = new Matrix4d();
+        this.applyBone(transform, name, null, 0.0, 0.0);
+        return WeaponMount.transform(transform, point);
     }
 
     private void applyBone(Matrix4d matrix, String name, String animation, double seconds, double bodyPitchRadians) {

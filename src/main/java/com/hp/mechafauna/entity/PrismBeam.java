@@ -1,20 +1,25 @@
 package com.hp.mechafauna.entity;
 
+import java.util.UUID;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 public final class PrismBeam extends Entity {
-    private static final int LIFETIME_TICKS = 8;
+    private static final int KEEP_ALIVE_TICKS = 3;
     private static final EntityDataAccessor<Float> DATA_BEAM_YAW = SynchedEntityData.defineId(PrismBeam.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Float> DATA_BEAM_PITCH = SynchedEntityData.defineId(PrismBeam.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Float> DATA_BEAM_LENGTH = SynchedEntityData.defineId(PrismBeam.class, EntityDataSerializers.FLOAT);
+
+    private UUID ownerId;
+    private int life = KEEP_ALIVE_TICKS;
 
     public PrismBeam(EntityType<? extends PrismBeam> entityType, Level level) {
         super(entityType, level);
@@ -28,13 +33,19 @@ public final class PrismBeam extends Entity {
         builder.define(DATA_BEAM_LENGTH, 0.0F);
     }
 
-    public void configure(Vec3 origin, float yaw, float pitch, float length) {
+    public void configure(Player owner, Vec3 origin, float yaw, float pitch, float length) {
+        this.ownerId = owner.getUUID();
+        this.life = KEEP_ALIVE_TICKS;
         this.setPos(origin);
         this.setYRot(yaw);
         this.setXRot(pitch);
         this.entityData.set(DATA_BEAM_YAW, yaw);
         this.entityData.set(DATA_BEAM_PITCH, pitch);
         this.entityData.set(DATA_BEAM_LENGTH, Math.max(0.05F, length));
+    }
+
+    public boolean ownedBy(Player player) {
+        return player.getUUID().equals(this.ownerId);
     }
 
     public float getBeamYaw() {
@@ -52,7 +63,7 @@ public final class PrismBeam extends Entity {
     @Override
     public void tick() {
         super.tick();
-        if (this.tickCount >= LIFETIME_TICKS) {
+        if (!this.level().isClientSide && --this.life <= 0) {
             this.discard();
         }
     }

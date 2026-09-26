@@ -8,6 +8,8 @@ import org.joml.Vector3d;
 public record WeaponMount(String modelName, String yawBone, String pitchBone, Vec3 yawPivot, Vec3 pitchPivot, Vec3 muzzle) {
     public static final WeaponMount DRONE_GUN = new WeaponMount("mechanical_drone", "gun_yaw", "gun_pitch",
         point(0, 16.2, -2), point(0, 12.9, -2), point(0, 11.2, -13.7));
+    public static final WeaponMount MILITARY_DRONE_GUN = new WeaponMount("military_drone", "gun_yaw", "gun_pitch",
+        point(-0.44592, 16.2, -2), point(-0.44592, 12.9, -2), point(-0.44592, 12.9, -12.08));
     public static final WeaponMount TANK_CANNON = new WeaponMount("mechanical_tank", "turret", "cannon_pitch",
         point(0, 8.95, 1), point(0, 11.4, -4.9), point(0, 11.4, -22.95));
     public static final WeaponMount MECH_GUN = new WeaponMount("heavy_mech", "gun_mount", "gun_pitch",

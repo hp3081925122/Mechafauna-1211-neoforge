@@ -20,10 +20,7 @@ public final class PrismBeamRenderer extends EntityRenderer<PrismBeam> {
     public void render(PrismBeam entity, float entityYaw, float partialTick, PoseStack poseStack,
                        MultiBufferSource buffers, int packedLight) {
         float age = entity.tickCount + partialTick;
-        float fade = Math.min(Mth.clamp(age / 2.0F, 0.0F, 1.0F), Mth.clamp((8.0F - age) / 2.0F, 0.0F, 1.0F));
-        if (fade <= 0.0F) {
-            return;
-        }
+        float fade = 0.82F + 0.18F * (0.5F + 0.5F * Mth.sin(age * 0.5F));
         Vec3 direction = Vec3.directionFromRotation(entity.getBeamPitch(), entity.getBeamYaw());
         Vec3 side = Math.abs(direction.y) > 0.98 ? new Vec3(1, 0, 0)
             : direction.cross(new Vec3(0, 1, 0)).normalize();
