@@ -16,5 +16,7 @@
   "item.mechafauna.mechanical_scrap": "Mechanical Scrap",
   "item.mechafauna.weaponized_drone": "Weaponized Drone",
   "item.mechafauna.mechanical_spider_throwable": "Overload Spider",
+  "item.mechafauna.prism_core": "Prism Core",
+  "item.mechafauna.prism_core.tooltip": "Hold right-click for 1 second, then release to fire a piercing laser (3-second cooldown).",
   "itemGroup.mechafauna.main": "Mechafauna"
 }

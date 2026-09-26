@@ -16,6 +16,8 @@ public record WeaponMount(String modelName, String yawBone, String pitchBone, Ve
         point(13.8, 38.5, 0.6), point(21, 38.5, -1.8), point(21, 38.5, -10.8));
     public static final WeaponMount FLAME_CRAWLER = new WeaponMount("flame_crawler", "sprayer_yaw", "sprayer_pitch",
         point(0, 10, -8.8), point(0, 10, -10), point(0, 9, -24.15));
+    public static final WeaponMount PRISM_LENS = new WeaponMount("prism_sentinel", "lens_yaw", "lens_pitch",
+        point(0, 12.15, -3.06), point(0, 12.15, -3.06), point(0, 12.15, -5.13));
     public static Vec3 point(double x, double y, double z) {
         return new Vec3(-x, y, z);
     }

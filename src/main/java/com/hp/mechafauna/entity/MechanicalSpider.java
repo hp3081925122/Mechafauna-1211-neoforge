@@ -29,8 +29,11 @@ import org.slf4j.Logger;
 public final class MechanicalSpider extends MechanicalMob {
     private static final String BITE = "bite";
     private static final String DEATH = "overload";
-    private static final int DEATH_ANIMATION_TICKS = 24;
-    private static final int DEATH_CLEANUP_TICKS = 32;
+    private static final int BITE_DURATION_TICKS = 20;
+    private static final int BITE_HIT_TICK = 10;
+    private static final int DEATH_ANIMATION_TICKS = 40;
+    private static final int DEATH_EXPLOSION_TICK = 31;
+    private static final int DEATH_CLEANUP_TICKS = 40;
     private static final int THROWN_DETONATION_TIMEOUT_TICKS = 40;
     private static final float EXPLOSION_RADIUS = 3.0F;
     private static final float THROWN_EXPLOSION_RADIUS = EXPLOSION_RADIUS;
@@ -190,8 +193,8 @@ public final class MechanicalSpider extends MechanicalMob {
     @Override
     protected Map<String, String> getActionAnimations() {
         return Map.of(
-            BITE, "animation.mechanical_spider.bite",
-            DEATH, "animation.mechanical_spider.death_overload"
+            BITE, "animation.mechanical_spider.attack",
+            DEATH, "animation.mechanical_spider.explode"
         );
     }
 
@@ -202,7 +205,7 @@ public final class MechanicalSpider extends MechanicalMob {
 
     @Override
     public int getActionDuration(String action) {
-        return 13;
+        return BITE_DURATION_TICKS;
     }
 
     @Override
@@ -226,7 +229,7 @@ public final class MechanicalSpider extends MechanicalMob {
 
     @Override
     protected void onActionTick(String action, int actionTick, LivingEntity target) {
-        if (BITE.equals(action) && actionTick == 7 && this.damageTarget(target, 2.5F, 2.8 * 2.8)) {
+        if (BITE.equals(action) && actionTick == BITE_HIT_TICK && this.damageTarget(target, 2.5F, 2.8 * 2.8)) {
             this.successfulBites++;
             if (this.successfulBites >= 2) {
                 this.primeForDetonation(target);
@@ -262,10 +265,10 @@ public final class MechanicalSpider extends MechanicalMob {
             }
         }
         if (this.deathTime == 1 && !this.level().isClientSide) {
-            LOGGER.debug("Mechanical spider death animation triggered entity={} selfDestructing={} animation=animation.mechanical_spider.death_overload", this.getId(), this.selfDestructing);
+            LOGGER.debug("Mechanical spider death animation triggered entity={} selfDestructing={} animation=animation.mechanical_spider.explode", this.getId(), this.selfDestructing);
             this.triggerAnim("action", DEATH);
         }
-        if (!this.level().isClientSide && !this.overloadExplosionTriggered && this.deathTime >= 22) {
+        if (!this.level().isClientSide && !this.overloadExplosionTriggered && this.deathTime >= DEATH_EXPLOSION_TICK) {
             this.overloadExplosionTriggered = true;
             double chainRadiusSquared = CHAIN_TRIGGER_RADIUS * CHAIN_TRIGGER_RADIUS;
             for (AnimatedHostileMob nearbyMob : this.level().getEntitiesOfClass(AnimatedHostileMob.class, this.getBoundingBox().inflate(CHAIN_TRIGGER_RADIUS))) {

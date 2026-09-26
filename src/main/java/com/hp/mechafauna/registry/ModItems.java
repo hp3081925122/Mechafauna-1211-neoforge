@@ -2,6 +2,7 @@ package com.hp.mechafauna.registry;
 
 import com.hp.mechafauna.Mechafauna;
 import com.hp.mechafauna.item.MechanicalSpiderThrowableItem;
+import com.hp.mechafauna.item.PrismCoreItem;
 import com.hp.mechafauna.item.WeaponizedDroneItem;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -22,6 +23,7 @@ public final class ModItems {
     public static final Supplier<? extends Item> MECHANICAL_SCRAP = ITEMS.registerSimpleItem("mechanical_scrap");
     public static final Supplier<? extends Item> WEAPONIZED_DRONE = ITEMS.register("weaponized_drone", WeaponizedDroneItem::new);
     public static final Supplier<? extends Item> MECHANICAL_SPIDER_THROWABLE = ITEMS.register("mechanical_spider_throwable", MechanicalSpiderThrowableItem::new);
+    public static final Supplier<? extends Item> PRISM_CORE = ITEMS.register("prism_core", PrismCoreItem::new);
 
     public static final Supplier<? extends Item> MECHANICAL_WOLF_SPAWN_EGG = ITEMS.register(
         "mechanical_wolf_spawn_egg",
@@ -65,6 +67,7 @@ public final class ModItems {
             output.accept(MECHANICAL_SCRAP.get());
             output.accept(WEAPONIZED_DRONE.get());
             output.accept(MECHANICAL_SPIDER_THROWABLE.get());
+            output.accept(PRISM_CORE.get());
         })
         .build());
 
@@ -83,6 +86,7 @@ public final class ModItems {
             event.accept(MECHANICAL_SCRAP.get());
             event.accept(WEAPONIZED_DRONE.get());
             event.accept(MECHANICAL_SPIDER_THROWABLE.get());
+            event.accept(PRISM_CORE.get());
         }
     }
 }

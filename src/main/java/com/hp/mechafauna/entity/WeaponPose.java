@@ -39,29 +39,39 @@ public final class WeaponPose {
     }
 
     public Matrix4d parentTransform(WeaponMount mount, Matrix4d modelToWorld, String animation, double seconds) {
-        this.applyBone(modelToWorld, this.bones.get(mount.yawBone()).parent(), animation, seconds);
+        return this.parentTransform(mount, modelToWorld, animation, seconds, 0.0);
+    }
+
+    public Matrix4d parentTransform(WeaponMount mount, Matrix4d modelToWorld, String animation, double seconds,
+                                    double bodyPitchRadians) {
+        this.applyBone(modelToWorld, this.bones.get(mount.yawBone()).parent(), animation, seconds, bodyPitchRadians);
         Vec3 position = this.sample(animation, mount.yawBone(), "position", seconds, Vec3.ZERO);
         return modelToWorld.translate(-position.x, position.y, position.z);
     }
 
     public Vec3 muzzle(WeaponMount mount, Vec3 muzzle, String animation, double seconds) {
         String recoil = mount == WeaponMount.MECH_MISSILES || mount == WeaponMount.FLAME_CRAWLER ? null
-            : mount == WeaponMount.TANK_CANNON ? "barrel_recoil" : "gun_recoil";
+            : mount == WeaponMount.TANK_CANNON ? "barrel_recoil"
+            : mount == WeaponMount.PRISM_LENS ? "lens_core" : "gun_recoil";
         Vec3 animatedMuzzle = mount == WeaponMount.MECH_GUN
             ? WeaponMount.transform(this.boneTransform("gun_spin", animation, seconds), muzzle)
             : muzzle;
         return recoil == null ? animatedMuzzle : WeaponMount.transform(this.boneTransform(recoil, animation, seconds), animatedMuzzle);
     }
 
-    private void applyBone(Matrix4d matrix, String name, String animation, double seconds) {
+    private void applyBone(Matrix4d matrix, String name, String animation, double seconds, double bodyPitchRadians) {
         if (name == null) {
             return;
         }
-        this.applyBone(matrix, this.bones.get(name).parent(), animation, seconds);
-        matrix.mul(this.boneTransform(name, animation, seconds));
+        this.applyBone(matrix, this.bones.get(name).parent(), animation, seconds, bodyPitchRadians);
+        matrix.mul(this.boneTransform(name, animation, seconds, bodyPitchRadians));
     }
 
     private Matrix4d boneTransform(String name, String animation, double seconds) {
+        return this.boneTransform(name, animation, seconds, 0.0);
+    }
+
+    private Matrix4d boneTransform(String name, String animation, double seconds, double bodyPitchRadians) {
         Bone bone = this.bones.get(name);
         Vec3 position = this.sample(animation, name, "position", seconds, Vec3.ZERO);
         Vec3 rotation = bone.rotation().add(this.sample(animation, name, "rotation", seconds, Vec3.ZERO));
@@ -69,7 +79,7 @@ public final class WeaponPose {
         Vec3 pivot = bone.pivot();
         return new Matrix4d().translate(-position.x, position.y, position.z)
             .translate(pivot.x, pivot.y, pivot.z).rotateZ(Math.toRadians(rotation.z))
-            .rotateY(Math.toRadians(-rotation.y)).rotateX(Math.toRadians(-rotation.x))
+            .rotateY(Math.toRadians(-rotation.y)).rotateX(Math.toRadians(-rotation.x) + ("body".equals(name) ? bodyPitchRadians : 0.0))
             .scale(scale.x, scale.y, scale.z).translate(-pivot.x, -pivot.y, -pivot.z);
     }
 
@@ -105,6 +115,9 @@ public final class WeaponPose {
     private static Vec3 vector(JsonElement value, Vec3 fallback) {
         if (value == null) {
             return fallback;
+        }
+        if (value.isJsonObject() && value.getAsJsonObject().has("vector")) {
+            return vector(value.getAsJsonObject().get("vector"), fallback);
         }
         JsonArray vector = value.getAsJsonArray();
         return new Vec3(vector.get(0).getAsDouble(), vector.get(1).getAsDouble(), vector.get(2).getAsDouble());

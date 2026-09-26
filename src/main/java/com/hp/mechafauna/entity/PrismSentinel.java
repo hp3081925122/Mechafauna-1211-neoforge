@@ -1,9 +1,18 @@
 package com.hp.mechafauna.entity;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
@@ -11,12 +20,40 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.control.FlyingMoveControl;
 import net.minecraft.world.entity.ai.navigation.FlyingPathNavigation;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 
 public final class PrismSentinel extends MechanicalMob {
     private static final String LASER = "laser";
+    private static final String LASER_SWEEP = "laser_sweep";
     private static final int LASER_FIRE_TICK = 13;
+    private static final int SWEEP_FIRE_TICK = 13;
+    private static final int LASER_FIRE_DURATION = 120;
+    private static final int LASER_END_TICK = LASER_FIRE_TICK + LASER_FIRE_DURATION;
+    private static final int SWEEP_END_TICK = SWEEP_FIRE_TICK + LASER_FIRE_DURATION;
+    private static final int SHARED_ATTACK_COOLDOWN = LASER_END_TICK + 8 + 60;
+    private static final int SWEEP_ROTATION_COUNT = 2;
     private static final double LASER_RANGE = 24.0;
+    private static final String FIRE_ANIMATION = "animation.prism_sentinel.fire";
+    private static final String SWEEP_ANIMATION = "animation.prism_sentinel.laser_sweep";
+    private static final EntityDataAccessor<Integer> DATA_LASER_TICK = SynchedEntityData.defineId(PrismSentinel.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Float> DATA_LASER_YAW = SynchedEntityData.defineId(PrismSentinel.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Float> DATA_LASER_PITCH = SynchedEntityData.defineId(PrismSentinel.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Float> DATA_BODY_PITCH = SynchedEntityData.defineId(PrismSentinel.class, EntityDataSerializers.FLOAT);
+    private final Map<Integer, Integer> lastSweepHitCycle = new HashMap<>();
+    private int laserTargetId = -1;
+    private int sharedAttackCooldown;
+    private float clientYaw;
+    private float clientYawOld;
+    private float clientPitch;
+    private float clientPitchOld;
+    private float clientBodyPitch;
+    private float clientBodyPitchOld;
+    private boolean clientTracking;
 
     public PrismSentinel(EntityType<? extends PrismSentinel> entityType, Level level) {
         super(entityType, level);
@@ -26,6 +63,50 @@ public final class PrismSentinel extends MechanicalMob {
 
     public static AttributeSupplier.Builder createAttributes() {
         return createAttributes(24.0, 0.32, 2.0, 32.0, 0.25).add(Attributes.FLYING_SPEED, 0.38);
+    }
+
+    @Override
+    protected void defineSynchedData(SynchedEntityData.Builder builder) {
+        super.defineSynchedData(builder);
+        builder.define(DATA_LASER_TICK, 0);
+        builder.define(DATA_LASER_YAW, 0.0F);
+        builder.define(DATA_LASER_PITCH, 0.0F);
+        builder.define(DATA_BODY_PITCH, 0.0F);
+    }
+
+    @Override
+    public void tick() {
+        if (!this.level().isClientSide && this.sharedAttackCooldown > 0) {
+            this.sharedAttackCooldown--;
+        }
+        super.tick();
+        if (this.level().isClientSide) {
+            float yaw = this.entityData.get(DATA_LASER_YAW);
+            float pitch = this.entityData.get(DATA_LASER_PITCH);
+            float bodyPitch = this.entityData.get(DATA_BODY_PITCH);
+            if (!this.clientTracking) {
+                this.clientYaw = yaw;
+                this.clientPitch = pitch;
+                this.clientBodyPitch = bodyPitch;
+            }
+            this.clientYawOld = this.clientYaw;
+            this.clientPitchOld = this.clientPitch;
+            this.clientBodyPitchOld = this.clientBodyPitch;
+            this.clientYaw = Mth.approachDegrees(this.clientYaw, yaw, 3.0F);
+            this.clientPitch = Mth.approachDegrees(this.clientPitch, pitch, 3.0F);
+            this.clientBodyPitch = Mth.approachDegrees(this.clientBodyPitch, bodyPitch, 3.0F);
+            this.clientTracking = this.isPerformingAction();
+        } else if (this.isPerformingAction()) {
+            float yaw = this.entityData.get(DATA_LASER_YAW);
+            this.setYRot(yaw);
+            this.setYBodyRot(yaw);
+            this.setYHeadRot(yaw);
+        } else {
+            this.entityData.set(DATA_LASER_TICK, 0);
+            this.entityData.set(DATA_BODY_PITCH, Mth.approach(this.entityData.get(DATA_BODY_PITCH), 0.0F, 2.0F));
+            this.laserTargetId = -1;
+            this.lastSweepHitCycle.clear();
+        }
     }
 
     @Override
@@ -40,35 +121,39 @@ public final class PrismSentinel extends MechanicalMob {
 
     @Override
     protected float getCombatTurnSpeed() {
-        return 24.0F;
+        return this.isPerformingAction() ? 1.5F : 6.0F;
     }
 
     @Override
     protected boolean shouldContinueAction(String action, int actionTick, LivingEntity target) {
-        return LASER.equals(action)
+        return (LASER.equals(action) || LASER_SWEEP.equals(action))
             && target.isAlive()
-            && this.hasLineOfSight(target)
-            && this.distanceToSqr(target) <= (LASER_RANGE + 2.0) * (LASER_RANGE + 2.0);
+            && target.getId() == this.laserTargetId
+            && !(target instanceof Player player && (player.isCreative() || player.isSpectator()))
+            && this.distanceToSqr(target) <= 32.0 * 32.0;
     }
 
     @Override
     protected Map<String, String> getActionAnimations() {
-        return Map.of();
+        return Map.of(LASER, FIRE_ANIMATION, LASER_SWEEP, SWEEP_ANIMATION);
     }
 
     @Override
     public List<String> getAvailableActions(LivingEntity target, double distanceSquared) {
-        return distanceSquared >= 5.0 * 5.0 && distanceSquared <= LASER_RANGE * LASER_RANGE ? List.of(LASER) : List.of();
+        if (this.sharedAttackCooldown > 0 || distanceSquared < 5.0 * 5.0 || distanceSquared > LASER_RANGE * LASER_RANGE) {
+            return List.of();
+        }
+        return this.random.nextInt(5) == 0 ? List.of(LASER_SWEEP) : List.of(LASER);
     }
 
     @Override
     public int getActionDuration(String action) {
-        return 28;
+        return LASER_END_TICK + 8;
     }
 
     @Override
     public int getActionCooldown(String action) {
-        return 48;
+        return SHARED_ATTACK_COOLDOWN;
     }
 
     @Override
@@ -88,15 +173,191 @@ public final class PrismSentinel extends MechanicalMob {
 
     @Override
     protected void onActionStarted(String action, LivingEntity target) {
-        if (LASER.equals(action)) {
+        if (LASER.equals(action) || LASER_SWEEP.equals(action)) {
+            this.laserTargetId = target.getId();
+            this.sharedAttackCooldown = SHARED_ATTACK_COOLDOWN;
+            this.lastSweepHitCycle.clear();
+            this.entityData.set(DATA_LASER_TICK, 0);
+            this.entityData.set(DATA_LASER_YAW, this.yBodyRot);
+            this.entityData.set(DATA_LASER_PITCH, 0.0F);
+            this.entityData.set(DATA_BODY_PITCH, 0.0F);
             this.level().playSound(null, this.blockPosition(), SoundEvents.CROSSBOW_LOADING_END.value(), SoundSource.HOSTILE, 0.75F, 1.65F);
         }
     }
 
     @Override
     protected void onActionTick(String action, int actionTick, LivingEntity target) {
-        if (LASER.equals(action) && actionTick == LASER_FIRE_TICK) {
-            this.launchPrismLaserFromPosition(target, this.position().add(0.0, this.getBbHeight() * 0.7, 0.0), 1.8, 6.0F);
+        if (!LASER.equals(action) && !LASER_SWEEP.equals(action)) {
+            return;
+        }
+        this.entityData.set(DATA_LASER_TICK, actionTick);
+        Vec3 aimOrigin = this.position().add(0, 12.15 / 16.0 * this.getModelScale(), 0);
+        Vec3 offset = target.getBoundingBox().getCenter().subtract(aimOrigin);
+        float wantedYaw = (float)Math.toDegrees(Math.atan2(-offset.x, offset.z));
+        float wantedPitch = (float)-Math.toDegrees(Math.atan2(offset.y, offset.horizontalDistance()));
+        this.entityData.set(DATA_LASER_YAW, Mth.approachDegrees(this.entityData.get(DATA_LASER_YAW), wantedYaw, 1.5F));
+        this.entityData.set(DATA_LASER_PITCH, Mth.approachDegrees(this.entityData.get(DATA_LASER_PITCH), wantedPitch, 1.5F));
+        float wantedBodyPitch = Mth.clamp(wantedPitch, 0.0F, 42.0F);
+        this.entityData.set(DATA_BODY_PITCH, Mth.approach(this.entityData.get(DATA_BODY_PITCH), wantedBodyPitch, 1.5F));
+        if (!this.isLaserFiring()) {
+            return;
+        }
+        if (LASER.equals(action) && (actionTick - LASER_FIRE_TICK) % 10 == 0) {
+            this.damageLaserVictims(this.getLaserRay(0.0F).victims(), 2.0F);
+        } else if (LASER_SWEEP.equals(action)) {
+            this.damageSweepArc(actionTick);
+        }
+    }
+
+    private void damageSweepArc(int actionTick) {
+        float previousYaw = this.sweepYawAtTick(actionTick - 1.0F);
+        float currentYaw = this.sweepYawAtTick(actionTick);
+        float yawDelta = Mth.wrapDegrees(currentYaw - previousYaw);
+        int steps = Math.max(1, Mth.ceil(Math.abs(yawDelta) / 2.0F));
+        int cycle = Math.min(SWEEP_ROTATION_COUNT - 1,
+            (int)(this.sweepProgressAtTick(actionTick) * SWEEP_ROTATION_COUNT));
+        Set<Integer> hitThisTick = new HashSet<>();
+        for (int step = 0; step <= steps; step++) {
+            float yaw = previousYaw + yawDelta * step / steps;
+            LaserRay ray = this.traceLaser(0.0F, yaw, this.getLaserPitch(0.0F));
+            for (LivingEntity victim : ray.victims()) {
+                if (hitThisTick.add(victim.getId()) && this.lastSweepHitCycle.getOrDefault(victim.getId(), -1) != cycle
+                    && victim.hurt(this.damageSources().mobAttack(this), 8.0F)) {
+                    victim.igniteForSeconds(4.0F);
+                    this.lastSweepHitCycle.put(victim.getId(), cycle);
+                }
+            }
+        }
+    }
+
+    private float sweepYawAtTick(float tick) {
+        return Mth.wrapDegrees(this.getLaserModelYaw(0.0F)
+            - this.sweepProgressAtTick(tick) * 360.0F * SWEEP_ROTATION_COUNT);
+    }
+
+    private float sweepProgressAtTick(float tick) {
+        return Mth.clamp((tick - SWEEP_FIRE_TICK) / (LASER_FIRE_DURATION - 1.0F), 0.0F, 1.0F);
+    }
+
+    private void damageLaserVictims(List<LivingEntity> victims, float damage) {
+        for (LivingEntity victim : victims) {
+            if (victim.hurt(this.damageSources().mobAttack(this), damage)) {
+                victim.igniteForSeconds(4.0F);
+            }
+        }
+    }
+
+    public boolean isLaserFiring() {
+        int tick = this.entityData.get(DATA_LASER_TICK);
+        String action = this.getActiveAction();
+        return this.isAlive() && ((LASER.equals(action) && tick >= LASER_FIRE_TICK && tick < LASER_END_TICK)
+            || (LASER_SWEEP.equals(action) && tick >= SWEEP_FIRE_TICK && tick < SWEEP_END_TICK));
+    }
+
+    public float getLaserChargePower(float partialTick) {
+        String action = this.getActiveAction();
+        if (!this.isAlive() || !this.isPerformingAction() || (!LASER.equals(action) && !LASER_SWEEP.equals(action))) {
+            return 0.0F;
+        }
+        int fireTick = LASER_SWEEP.equals(action) ? SWEEP_FIRE_TICK : LASER_FIRE_TICK;
+        float tick = this.entityData.get(DATA_LASER_TICK) + partialTick;
+        return tick < fireTick ? Mth.clamp((tick + 1.0F) / fireTick, 0.0F, 1.0F) : 0.0F;
+    }
+
+    public float getLaserModelYaw(float partialTick) {
+        return this.level().isClientSide && this.clientTracking
+            ? Mth.rotLerp(partialTick, this.clientYawOld, this.clientYaw) : this.entityData.get(DATA_LASER_YAW);
+    }
+
+    public float getLaserYaw(float partialTick) {
+        float baseYaw = this.getLaserModelYaw(partialTick);
+        if (!LASER_SWEEP.equals(this.getActiveAction())) {
+            return baseYaw;
+        }
+        float tick = this.entityData.get(DATA_LASER_TICK) + partialTick;
+        return Mth.wrapDegrees(baseYaw - this.sweepProgressAtTick(tick) * 360.0F * SWEEP_ROTATION_COUNT);
+    }
+
+    public float getLaserPitch(float partialTick) {
+        return this.level().isClientSide && this.clientTracking
+            ? Mth.lerp(partialTick, this.clientPitchOld, this.clientPitch) : this.entityData.get(DATA_LASER_PITCH);
+    }
+
+    public float getBodyTiltRadians(float partialTick) {
+        float pitch = this.level().isClientSide && this.clientTracking
+            ? Mth.lerp(partialTick, this.clientBodyPitchOld, this.clientBodyPitch) : this.entityData.get(DATA_BODY_PITCH);
+        return -pitch * Mth.DEG_TO_RAD;
+    }
+
+    public float getLaserPower(float partialTick) {
+        float tick = this.entityData.get(DATA_LASER_TICK) + partialTick;
+        int fireTick = LASER_SWEEP.equals(this.getActiveAction()) ? SWEEP_FIRE_TICK : LASER_FIRE_TICK;
+        int endTick = fireTick + LASER_FIRE_DURATION;
+        return this.isLaserFiring() ? Math.min(Mth.clamp((tick - fireTick + 1) / 3.0F, 0, 1),
+            Mth.clamp((endTick - tick) / 5.0F, 0, 1)) : 0.0F;
+    }
+
+    public WeaponMount.Aim getLaserAim(float partialTick) {
+        return this.getLaserAim(partialTick, this.getLaserYaw(partialTick));
+    }
+
+    private WeaponMount.Aim getLaserAim(float partialTick, float beamYaw) {
+        WeaponPose pose = WeaponPose.forModel("prism_sentinel");
+        double seconds = (this.entityData.get(DATA_LASER_TICK) + partialTick) / 20.0;
+        String animation = LASER_SWEEP.equals(this.getActiveAction()) ? SWEEP_ANIMATION : FIRE_ANIMATION;
+        var parent = pose.parentTransform(WeaponMount.PRISM_LENS,
+            WeaponMount.modelToWorld(this.getPosition(partialTick), this.getLaserModelYaw(partialTick), this.getModelScale()),
+            animation, seconds, this.getBodyTiltRadians(partialTick));
+        Vec3 pivot = WeaponMount.transform(parent, WeaponMount.PRISM_LENS.yawPivot());
+        Vec3 direction = Vec3.directionFromRotation(this.getLaserPitch(partialTick), beamYaw);
+        return WeaponMount.PRISM_LENS.aim(parent, pivot.add(direction.scale(LASER_RANGE)));
+    }
+
+    public LaserRay getLaserRay(float partialTick) {
+        return this.traceLaser(partialTick, this.getLaserYaw(partialTick), this.getLaserPitch(partialTick));
+    }
+
+    public Vec3 getLaserMuzzle(float partialTick) {
+        return this.getLaserMuzzle(partialTick, this.getLaserAim(partialTick));
+    }
+
+    private Vec3 getLaserMuzzle(float partialTick, WeaponMount.Aim aim) {
+        WeaponPose pose = WeaponPose.forModel("prism_sentinel");
+        String animation = LASER_SWEEP.equals(this.getActiveAction()) ? SWEEP_ANIMATION : FIRE_ANIMATION;
+        double seconds = (this.entityData.get(DATA_LASER_TICK) + partialTick) / 20.0;
+        return aim.muzzle(pose.muzzle(WeaponMount.PRISM_LENS, WeaponMount.PRISM_LENS.muzzle(), animation, seconds));
+    }
+
+    private LaserRay traceLaser(float partialTick, float yaw, float pitch) {
+        WeaponMount.Aim aim = this.getLaserAim(partialTick, yaw);
+        Vec3 origin = this.getLaserMuzzle(partialTick, aim);
+        Vec3 direction = Vec3.directionFromRotation(pitch, yaw);
+        var blockHit = this.level().clip(new ClipContext(origin, origin.add(direction.scale(LASER_RANGE)),
+            ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, this));
+        Vec3 end = blockHit.getLocation();
+        ArrayList<BeamEntityHit> hits = new ArrayList<>();
+        for (LivingEntity candidate : this.level().getEntitiesOfClass(LivingEntity.class,
+            new AABB(origin, end).inflate(0.12), entity -> entity != this && entity.isAlive()
+                && !(entity instanceof MechanicalMob) && !this.isAlliedTo(entity)
+                && !(entity instanceof Player player && (player.isSpectator() || player.isCreative())))) {
+            AABB box = candidate.getBoundingBox().inflate(0.09);
+            Vec3 hit = box.contains(origin) ? origin : box.clip(origin, end).orElse(null);
+            if (hit != null) {
+                hits.add(new BeamEntityHit(candidate, hit, origin.distanceToSqr(hit)));
+            }
+        }
+        hits.sort(Comparator.comparingDouble(BeamEntityHit::distanceSquared));
+        return new LaserRay(origin, direction, end, hits.stream().map(BeamEntityHit::entity).toList(),
+            hits.stream().map(BeamEntityHit::location).toList(), blockHit.getType() != HitResult.Type.MISS);
+    }
+
+    private record BeamEntityHit(LivingEntity entity, Vec3 location, double distanceSquared) {
+    }
+
+    public record LaserRay(Vec3 origin, Vec3 direction, Vec3 end, List<LivingEntity> victims,
+                           List<Vec3> hitPoints, boolean blockHit) {
+        public boolean hit() {
+            return !this.hitPoints.isEmpty() || this.blockHit;
         }
     }
 }

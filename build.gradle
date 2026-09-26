@@ -20,6 +20,13 @@ repositories {
             includeGroup 'software.bernie.geckolib'
         }
     }
+    maven {
+        name = 'CurseMaven'
+        url = 'https://www.cursemaven.com'
+        content {
+            includeGroup 'curse.maven'
+        }
+    }
 }
 
 base {
@@ -58,6 +65,7 @@ sourceSets.main.resources { srcDir 'src/generated/resources' }
 dependencies {
     implementation "net.neoforged:neoforge:${project.neo_version}"
     implementation "software.bernie.geckolib:geckolib-neoforge-${project.minecraft_version}:${project.geckolib_version}"
+    implementation 'curse.maven:jade-324717:8591319'
     annotationProcessor 'net.fabricmc:sponge-mixin:0.15.2+mixin.0.8.7'
 }
 

@@ -4,6 +4,7 @@ import com.hp.mechafauna.Mechafauna;
 import com.hp.mechafauna.entity.HeavyMech;
 import com.hp.mechafauna.entity.FlameCrawler;
 import com.hp.mechafauna.entity.MechProjectile;
+import com.hp.mechafauna.entity.PrismBeam;
 import com.hp.mechafauna.entity.MechanicalDrone;
 import com.hp.mechafauna.entity.MechanicalSpider;
 import com.hp.mechafauna.entity.MechanicalTank;
@@ -52,6 +53,10 @@ public final class ModEntities {
     public static final DeferredHolder<EntityType<?>, EntityType<MechProjectile>> MECH_PROJECTILE = ENTITY_TYPES.register(
         "mech_projectile",
         () -> EntityType.Builder.<MechProjectile>of(MechProjectile::new, MobCategory.MISC).sized(0.28F, 0.28F).clientTrackingRange(10).updateInterval(1).build("mechafauna:mech_projectile")
+    );
+    public static final DeferredHolder<EntityType<?>, EntityType<PrismBeam>> PRISM_BEAM = ENTITY_TYPES.register(
+        "prism_beam",
+        () -> EntityType.Builder.<PrismBeam>of(PrismBeam::new, MobCategory.MISC).noSave().noSummon().sized(0.1F, 0.1F).clientTrackingRange(8).updateInterval(1).build("mechafauna:prism_beam")
     );
 
     private ModEntities() {

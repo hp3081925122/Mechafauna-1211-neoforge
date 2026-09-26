@@ -16,5 +16,7 @@
   "item.mechafauna.mechanical_scrap": "机械碎片",
   "item.mechafauna.weaponized_drone": "武装无人机",
   "item.mechafauna.mechanical_spider_throwable": "自爆机械蜘蛛",
+  "item.mechafauna.prism_core": "棱光镜核心",
+  "item.mechafauna.prism_core.tooltip": "长按右键1秒蓄力，松开发射穿透激光（冷却3秒）",
   "itemGroup.mechafauna.main": "机械生物"
 }

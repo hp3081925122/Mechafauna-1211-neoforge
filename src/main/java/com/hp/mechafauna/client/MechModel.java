@@ -7,6 +7,7 @@ import com.hp.mechafauna.entity.FlameCrawler;
 import com.hp.mechafauna.entity.MechanicalDrone;
 import com.hp.mechafauna.entity.MechanicalSpider;
 import com.hp.mechafauna.entity.MechanicalTank;
+import com.hp.mechafauna.entity.PrismSentinel;
 import com.hp.mechafauna.entity.WeaponMount;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
@@ -61,6 +62,20 @@ public final class MechModel<T extends AnimatedHostileMob & GeoAnimatable> exten
             this.aimWeapon(entity, WeaponMount.MECH_MISSILES, partialTick);
         } else if (entity instanceof FlameCrawler) {
             this.aimWeapon(entity, WeaponMount.FLAME_CRAWLER, partialTick);
+        } else if (entity instanceof PrismSentinel prism && prism.isPerformingAction()) {
+            this.getBone("body").ifPresent(body -> {
+                body.updateRotation(body.getRotX() + prism.getBodyTiltRadians(partialTick), body.getRotY(), body.getRotZ());
+                body.resetStateChanges();
+            });
+            WeaponMount.Aim aim = prism.getLaserAim(partialTick);
+            this.getBone("lens_yaw").ifPresent(bone -> {
+                bone.updateRotation(0.0F, aim.yaw(), 0.0F);
+                bone.resetStateChanges();
+            });
+            this.getBone("lens_pitch").ifPresent(bone -> {
+                bone.updateRotation(aim.pitch(), 0.0F, 0.0F);
+                bone.resetStateChanges();
+            });
         }
     }
 
