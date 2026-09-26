@@ -50,7 +50,8 @@ public final class SaucerBossBarEvents {
         // 主血条下方横向排列四个武器血条
         for (FlyingSaucerWeapon weapon : weapons) {
             int left = event.getX() + weapon.ordinal() * (smallWidth + GAP);
-            float ratio = Mth.clamp(saucer.getWeaponHealth(weapon.ordinal()) / FlyingSaucerBoss.getWeaponMaxHealth(), 0.0F, 1.0F);
+            float maxHealth = saucer.getWeaponMaxHealth();
+            float ratio = maxHealth <= 0.0F ? 0.0F : Mth.clamp(saucer.getWeaponHealth(weapon.ordinal()) / maxHealth, 0.0F, 1.0F);
             boolean destroyed = saucer.isWeaponDestroyed(weapon.ordinal());
             // 武器名称，摧毁后变灰
             Component name = Component.translatable("entity.mechafauna.flying_saucer_boss.part." + weapon.name().toLowerCase(Locale.ROOT));

@@ -16,7 +16,7 @@ import software.bernie.geckolib.renderer.GeoEntityRenderer;
 
 public final class FlyingSaucerRenderer extends GeoEntityRenderer<FlyingSaucerBoss> {
     // 按透明度叠加发光，保证淡入淡出生效
-    private static final RenderType GLOW = RenderType.create("mechafauna_saucer_laser",
+    static final RenderType GLOW = RenderType.create("mechafauna_saucer_laser",
         DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.QUADS, 8192, false, false,
         RenderType.CompositeState.builder()
             .setShaderState(RenderStateShard.POSITION_COLOR_SHADER)
@@ -34,9 +34,18 @@ public final class FlyingSaucerRenderer extends GeoEntityRenderer<FlyingSaucerBo
     }
 
     @Override
+    protected float getDeathMaxRotation(FlyingSaucerBoss animatable) {
+        return 0.0F;
+    }
+
+    @Override
     public void render(FlyingSaucerBoss entity, float entityYaw, float partialTick, PoseStack poseStack,
                        MultiBufferSource buffers, int packedLight) {
         super.render(entity, entityYaw, partialTick, poseStack, buffers, packedLight);
+        // 死亡爆炸特效
+        if (entity.isDeadOrDying()) {
+            this.renderDeathExplosion(buffers.getBuffer(GLOW), poseStack.last().pose(), entity, partialTick);
+        }
         // 召唤增援的传输光束
         if (entity.getSummonTick() > 0) {
             Vec3 summonPosition = entity.getPosition(partialTick);
@@ -55,24 +64,25 @@ public final class FlyingSaucerRenderer extends GeoEntityRenderer<FlyingSaucerBo
         Vec3 position = entity.getPosition(partialTick);
         Vec3 origin = entity.getLaserOrigin(position).subtract(position);
         Vec3 impact = entity.getLaserImpact().subtract(position);
+        renderGroundLaser(buffers.getBuffer(GLOW), poseStack.last().pose(), origin, impact, laserTick + partialTick);
+    }
+
+    static void renderGroundLaser(VertexConsumer vertices, Matrix4f matrix, Vec3 origin, Vec3 impact, float time) {
         if (impact.y >= origin.y) {
             return;
         }
-        float time = laserTick + partialTick;
         float fireTime = time - FlyingSaucerBoss.LASER_CHARGE_TICKS;
-        VertexConsumer vertices = buffers.getBuffer(GLOW);
-        Matrix4f matrix = poseStack.last().pose();
         if (fireTime < 0.0F) {
-            this.renderCharge(vertices, matrix, origin, impact, time, time / FlyingSaucerBoss.LASER_CHARGE_TICKS);
+            renderCharge(vertices, matrix, origin, impact, time, time / FlyingSaucerBoss.LASER_CHARGE_TICKS);
             return;
         }
         if (fireTime < FlyingSaucerBoss.LASER_FIRE_TICKS) {
-            this.renderBeam(vertices, matrix, origin, impact, time, fireTime);
+            renderBeam(vertices, matrix, origin, impact, time, fireTime);
         }
-        this.renderWaves(vertices, matrix, impact, fireTime);
+        renderWaves(vertices, matrix, impact, fireTime);
     }
 
-    private void renderCharge(VertexConsumer vertices, Matrix4f matrix, Vec3 origin, Vec3 impact, float time, float charge) {
+    private static void renderCharge(VertexConsumer vertices, Matrix4f matrix, Vec3 origin, Vec3 impact, float time, float charge) {
         float pulse = 0.85F + 0.15F * Mth.sin(time * 0.9F);
         // 核心下方三圈收缩的聚能环
         for (int i = 0; i < 3; i++) {
@@ -111,7 +121,7 @@ public final class FlyingSaucerRenderer extends GeoEntityRenderer<FlyingSaucerBo
         flatRing(vertices, matrix, impact.add(0.0, 0.06, 0.0), warn * charge, 0.1, 40, time * 0.05, 0.5F, 0.95F, 1.0F, 0.45F * charge);
     }
 
-    private void renderBeam(VertexConsumer vertices, Matrix4f matrix, Vec3 origin, Vec3 impact, float time, float fireTime) {
+    private static void renderBeam(VertexConsumer vertices, Matrix4f matrix, Vec3 origin, Vec3 impact, float time, float fireTime) {
         // 起手迅速展开，结尾收束
         float open = Mth.clamp(fireTime / 3.0F, 0.0F, 1.0F);
         float close = Mth.clamp((FlyingSaucerBoss.LASER_FIRE_TICKS - fireTime) / FlyingSaucerBoss.LASER_FADE_TICKS, 0.0F, 1.0F);
@@ -136,7 +146,7 @@ public final class FlyingSaucerRenderer extends GeoEntityRenderer<FlyingSaucerBo
         cylinder(vertices, matrix, ground.add(0.0, 1.2 * power, 0.0), DOWN, 1.2 * power, 1.9 * pulse * power, 0.4F, 0.9F, 1.0F, 0.3F * power);
     }
 
-    private void renderWaves(VertexConsumer vertices, Matrix4f matrix, Vec3 impact, float fireTime) {
+    private static void renderWaves(VertexConsumer vertices, Matrix4f matrix, Vec3 impact, float fireTime) {
         Vec3 ground = impact.add(0.0, 0.08, 0.0);
         for (int wave = 0; wave < FlyingSaucerBoss.WAVE_COUNT; wave++) {
             float age = fireTime - wave * FlyingSaucerBoss.WAVE_INTERVAL;
@@ -382,5 +392,47 @@ public final class FlyingSaucerRenderer extends GeoEntityRenderer<FlyingSaucerBo
     private static void vertex(VertexConsumer vertices, Matrix4f matrix, Vec3 point,
                                float red, float green, float blue, float alpha) {
         vertices.addVertex(matrix, (float)point.x, (float)point.y, (float)point.z).setColor(red, green, blue, alpha);
+    }
+
+    private void renderDeathExplosion(VertexConsumer vertices, Matrix4f matrix, FlyingSaucerBoss entity, float partialTick) {
+        float time = entity.deathTime + partialTick;
+        float progress = time / 100.0F;
+        if (progress >= 1.0F) {
+            return;
+        }
+        // 从核心向外扩散的能量冲击球
+        double coreRadius = 1.5 + 8.0 * progress;
+        float coreAlpha = (1.0F - progress) * 0.6F;
+        cylinder(vertices, matrix, new Vec3(0.0, 3.0, 0.0), DOWN, coreRadius, coreRadius, 0.4F, 0.85F, 1.0F, coreAlpha);
+        cylinder(vertices, matrix, new Vec3(0.0, 3.0 + coreRadius * 0.5, 0.0), DOWN, coreRadius, coreRadius * 0.7, 0.8F, 0.95F, 1.0F, coreAlpha * 1.2F);
+        // 向上喷出的能量柱
+        if (progress < 0.6F) {
+            float jetProgress = progress / 0.6F;
+            double height = 12.0 * jetProgress;
+            double jetRadius = 1.2 * (1.0F - jetProgress * 0.5F);
+            cylinder(vertices, matrix, new Vec3(0.0, 3.0, 0.0), new Vec3(0.0, 1.0, 0.0), height, jetRadius, 0.3F, 0.8F, 1.0F, (1.0F - jetProgress) * 0.5F);
+        }
+        // 沿装甲板边缘的电弧闪光
+        for (int i = 0; i < 8; i++) {
+            double angle = i * Math.PI * 2.0 / 8.0 + time * 0.1;
+            double arcProgress = (time * 0.08 + i * 0.15) % 1.0;
+            if (arcProgress < 0.7) {
+                double x = Math.cos(angle) * (3.5 + arcProgress * 2.0);
+                double z = Math.sin(angle) * (3.5 + arcProgress * 2.0);
+                double y = 2.5 + Math.sin(arcProgress * Math.PI) * 1.5;
+                double nextX = Math.cos(angle) * (3.5 + (arcProgress + 0.1) * 2.0);
+                double nextZ = Math.sin(angle) * (3.5 + (arcProgress + 0.1) * 2.0);
+                double nextY = 2.5 + Math.sin((arcProgress + 0.1) * Math.PI) * 1.5;
+                float arcAlpha = (1.0F - (float)arcProgress) * (1.0F - progress) * 0.8F;
+                ribbon(vertices, matrix, new Vec3(x, y, z), new Vec3(nextX, nextY, nextZ), 0.15, 0.5F, 0.9F, 1.0F, arcAlpha);
+            }
+        }
+        // 地面冲击环
+        if (progress < 0.5F) {
+            float shockProgress = progress / 0.5F;
+            double shockRadius = 10.0 * shockProgress;
+            float shockAlpha = (1.0F - shockProgress) * 0.7F;
+            flatRing(vertices, matrix, new Vec3(0.0, 0.1, 0.0), shockRadius, 0.6, 48, -time * 0.05, 0.3F, 0.85F, 1.0F, shockAlpha);
+        }
     }
 }

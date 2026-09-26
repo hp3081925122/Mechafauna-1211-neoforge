@@ -12,6 +12,7 @@ import com.hp.mechafauna.entity.MechanicalSpider;
 import com.hp.mechafauna.entity.MechanicalTank;
 import com.hp.mechafauna.entity.MechanicalWolf;
 import com.hp.mechafauna.entity.PrismSentinel;
+import com.hp.mechafauna.entity.SaucerLaserStrike;
 import com.hp.mechafauna.entity.RideableMechanicalWolf;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.entity.EntityType;
@@ -68,6 +69,15 @@ public final class ModEntities {
     public static final DeferredHolder<EntityType<?>, EntityType<FlyingSaucerBoss>> FLYING_SAUCER_BOSS = ENTITY_TYPES.register(
         "flying_saucer_boss",
         () -> EntityType.Builder.of(FlyingSaucerBoss::new, MobCategory.MONSTER).sized(10.4F, 5.6F).clientTrackingRange(32).updateInterval(1).build("mechafauna:flying_saucer_boss")
+    );
+    public static final DeferredHolder<EntityType<?>, EntityType<SaucerLaserStrike>> SAUCER_LASER_STRIKE = ENTITY_TYPES.register(
+        "saucer_laser_strike",
+        () -> EntityType.Builder.<SaucerLaserStrike>of(SaucerLaserStrike::new, MobCategory.MISC)
+            .sized(0.1F, 0.1F)
+            .clientTrackingRange(64)
+            .updateInterval(1)
+            .noSave()
+            .build("mechafauna:saucer_laser_strike")
     );
     public static final DeferredHolder<EntityType<?>, EntityType<MechProjectile>> MECH_PROJECTILE = ENTITY_TYPES.register(
         "mech_projectile",

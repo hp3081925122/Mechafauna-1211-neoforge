@@ -48,7 +48,7 @@ public final class RideableMechanicalWolf extends Mob implements GeoEntity, Owna
         return Mob.createMobAttributes()
             .add(Attributes.MAX_HEALTH, 40.0)
             .add(Attributes.MOVEMENT_SPEED, 0.42)
-            .add(Attributes.STEP_HEIGHT, 1.5)
+            .add(Attributes.STEP_HEIGHT, 3.0)
             .add(Attributes.JUMP_STRENGTH, 0.65)
             .add(Attributes.SAFE_FALL_DISTANCE, 8.0)
             .add(Attributes.FALL_DAMAGE_MULTIPLIER, 0.0)

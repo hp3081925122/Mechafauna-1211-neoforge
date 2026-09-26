@@ -26,6 +26,7 @@ public final class ClientModEvents {
         event.registerEntityRenderer(ModEntities.FLAME_CRAWLER.get(), FlameCrawlerRenderer::new);
         event.registerEntityRenderer(ModEntities.PRISM_SENTINEL.get(), PrismSentinelRenderer::new);
         event.registerEntityRenderer(ModEntities.FLYING_SAUCER_BOSS.get(), FlyingSaucerRenderer::new);
+        event.registerEntityRenderer(ModEntities.SAUCER_LASER_STRIKE.get(), SaucerLaserStrikeRenderer::new);
         event.registerEntityRenderer(ModEntities.MECH_PROJECTILE.get(), MechProjectileRenderer::new);
         event.registerEntityRenderer(ModEntities.PRISM_BEAM.get(), PrismBeamRenderer::new);
     }
