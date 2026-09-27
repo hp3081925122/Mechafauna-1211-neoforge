@@ -5,21 +5,23 @@ import com.mojang.logging.LogUtils;
 import java.util.List;
 import java.util.Map;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
-import software.bernie.geckolib.animation.AnimatableManager;
-import software.bernie.geckolib.animation.AnimationController;
-import software.bernie.geckolib.animation.PlayState;
-import software.bernie.geckolib.animation.RawAnimation;
+import com.geckolib.animatable.manager.AnimatableManager;
+import com.geckolib.animation.AnimationController;
+import com.geckolib.animation.object.PlayState;
+import com.geckolib.animation.RawAnimation;
 
 public final class MechanicalTank extends MechanicalMob {
     private static final String FIRE = "fire";
@@ -38,12 +40,13 @@ public final class MechanicalTank extends MechanicalMob {
     public MechanicalTank(EntityType<? extends MechanicalTank> entityType, Level level) {
         super(entityType, level);
         this.spiderSummonCooldown = this.random.nextInt(SPIDER_SUMMON_INTERVAL_TICKS) + 1;
+        this.refreshDimensions();
     }
 
     @Override
     public void tick() {
         super.tick();
-        if (this.level().isClientSide) {
+        if (this.level().isClientSide()) {
             return;
         }
         if (this.isAlive() && !this.halfHealthReinforcementsSummoned && this.getHealth() <= this.getMaxHealth() * 0.5F) {
@@ -75,29 +78,29 @@ public final class MechanicalTank extends MechanicalMob {
     }
 
     @Override
-    public void addAdditionalSaveData(CompoundTag tag) {
-        super.addAdditionalSaveData(tag);
-        tag.putInt("SpiderSummonCooldown", this.spiderSummonCooldown);
-        tag.putBoolean("HalfHealthReinforcementsSummoned", this.halfHealthReinforcementsSummoned);
+    protected void addAdditionalSaveData(ValueOutput output) {
+        super.addAdditionalSaveData(output);
+        output.putInt("SpiderSummonCooldown", this.spiderSummonCooldown);
+        output.putBoolean("HalfHealthReinforcementsSummoned", this.halfHealthReinforcementsSummoned);
     }
 
     @Override
-    public void readAdditionalSaveData(CompoundTag tag) {
-        super.readAdditionalSaveData(tag);
-        if (tag.contains("SpiderSummonCooldown")) {
-            this.spiderSummonCooldown = tag.getInt("SpiderSummonCooldown");
-        }
-        this.halfHealthReinforcementsSummoned = tag.getBoolean("HalfHealthReinforcementsSummoned");
+    protected void readAdditionalSaveData(ValueInput input) {
+        super.readAdditionalSaveData(input);
+        this.spiderSummonCooldown = input.getIntOr("SpiderSummonCooldown", this.spiderSummonCooldown);
+        this.halfHealthReinforcementsSummoned = input.getBooleanOr("HalfHealthReinforcementsSummoned", false);
+        this.refreshDimensions();
     }
 
     private void summonMechanicalWolf(double angle) {
-        MechanicalWolf wolf = ModEntities.MECHANICAL_WOLF.get().create(this.level());
+        MechanicalWolf wolf = ModEntities.MECHANICAL_WOLF.get().create(this.level(), EntitySpawnReason.MOB_SUMMONED);
         if (wolf == null) {
             return;
         }
         double x = this.getX() + Math.cos(angle) * REINFORCEMENT_DISTANCE;
         double z = this.getZ() + Math.sin(angle) * REINFORCEMENT_DISTANCE;
-        wolf.moveTo(x, this.getY(), z, this.random.nextFloat() * 360.0F, 0.0F);
+        wolf.setPos(x, this.getY(), z);
+        wolf.setYRot(this.random.nextFloat() * 360.0F);
         LivingEntity target = this.getTarget();
         if (target != null && target.isAlive() && !AnimatedHostileMob.isIgnoredByOtherMechs(target)) {
             wolf.setTarget(target);
@@ -108,14 +111,15 @@ public final class MechanicalTank extends MechanicalMob {
     }
 
     private void summonMechanicalSpider() {
-        MechanicalSpider spider = ModEntities.MECHANICAL_SPIDER.get().create(this.level());
+        MechanicalSpider spider = ModEntities.MECHANICAL_SPIDER.get().create(this.level(), EntitySpawnReason.MOB_SUMMONED);
         if (spider == null) {
             return;
         }
         double angle = this.random.nextDouble() * Math.PI * 2.0;
         double x = this.getX() + Math.cos(angle) * REINFORCEMENT_DISTANCE;
         double z = this.getZ() + Math.sin(angle) * REINFORCEMENT_DISTANCE;
-        spider.moveTo(x, this.getY(), z, this.random.nextFloat() * 360.0F, 0.0F);
+        spider.setPos(x, this.getY(), z);
+        spider.setYRot(this.random.nextFloat() * 360.0F);
         spider.setSummonerUUID(this.getUUID());
         LivingEntity target = this.getTarget();
         if (target != null && target.isAlive() && !AnimatedHostileMob.isIgnoredByOtherMechs(target)) {
@@ -128,11 +132,6 @@ public final class MechanicalTank extends MechanicalMob {
 
     public static AttributeSupplier.Builder createAttributes() {
         return createAttributes(MAX_HEALTH, 0.38, 10.0, 36.0, KNOCKBACK_RESISTANCE).add(Attributes.SCALE, MODEL_SCALE);
-    }
-
-    @Override
-    public double getModelScale() {
-        return super.getModelScale() * MODEL_SCALE;
     }
 
     @Override
@@ -155,12 +154,11 @@ public final class MechanicalTank extends MechanicalMob {
 
     @Override
     protected void addExtraControllers(AnimatableManager.ControllerRegistrar controllers) {
-        AnimationController<MechanicalTank> turret = new AnimationController<>(this, "turret_scan", 0, state -> {
+        AnimationController<MechanicalTank> turret = new AnimationController<>("turret_scan", 0, state -> {
             if (this.hasCombatTarget() || this.isPerformingAction()) {
                 return PlayState.STOP;
             }
-            state.setAnimation(RawAnimation.begin().thenLoop(TURRET_TURN));
-            return PlayState.CONTINUE;
+            return state.setAndContinue(RawAnimation.begin().thenLoop(TURRET_TURN));
         });
         controllers.add(turret);
     }

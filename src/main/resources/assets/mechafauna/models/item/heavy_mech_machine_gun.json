@@ -1,6 +1,9 @@
 {
   "credit": "Made with Blockbench",
-  "parent": "builtin/entity",
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "mechafauna:item/heavy_mech_machine_gun"
+  },
   "texture_size": [
     256,
     256

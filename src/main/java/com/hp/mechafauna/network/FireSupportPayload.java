@@ -5,14 +5,14 @@ import com.hp.mechafauna.item.FireSupport;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
 public record FireSupportPayload() implements CustomPacketPayload {
-    public static final Type<FireSupportPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(Mechafauna.MOD_ID, "fire_support"));
+    public static final Type<FireSupportPayload> TYPE = new Type<>(Identifier.fromNamespaceAndPath(Mechafauna.MOD_ID, "fire_support"));
     public static final StreamCodec<RegistryFriendlyByteBuf, FireSupportPayload> STREAM_CODEC = StreamCodec.unit(new FireSupportPayload());
 
     public static void register(RegisterPayloadHandlersEvent event) {

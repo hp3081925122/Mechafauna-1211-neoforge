@@ -5,19 +5,22 @@ import com.hp.mechafauna.registry.ModEntities;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Consumer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Item.TooltipContext;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.UseAnim;
+import net.minecraft.world.item.component.TooltipDisplay;
+import net.minecraft.world.item.ItemUseAnimation;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
@@ -34,23 +37,23 @@ public final class PrismCoreItem extends Item {
     private static final double BEAM_DROP = 0.45;
     private static final float LASER_DAMAGE = 4.0F;
 
-    public PrismCoreItem() {
-        super(new Item.Properties().stacksTo(1));
+    public PrismCoreItem(Item.Properties properties) {
+        super(properties.stacksTo(1));
     }
 
     @Override
-    public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+    public InteractionResult use(Level level, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
-        if (player.getCooldowns().isOnCooldown(this)) {
-            return InteractionResultHolder.fail(stack);
+        if (player.getCooldowns().isOnCooldown(stack)) {
+            return InteractionResult.FAIL;
         }
         player.startUsingItem(hand);
-        return InteractionResultHolder.consume(stack);
+        return InteractionResult.CONSUME;
     }
 
     @Override
-    public UseAnim getUseAnimation(ItemStack stack) {
-        return UseAnim.BOW;
+    public ItemUseAnimation getUseAnimation(ItemStack stack) {
+        return ItemUseAnimation.BOW;
     }
 
     @Override
@@ -67,8 +70,9 @@ public final class PrismCoreItem extends Item {
     }
 
     @Override
-    public void releaseUsing(ItemStack stack, Level level, LivingEntity entity, int remainingUseTicks) {
+    public boolean releaseUsing(ItemStack stack, Level level, LivingEntity entity, int remainingUseTicks) {
         this.beginCooldown(entity);
+        return true;
     }
 
     @Override
@@ -79,7 +83,7 @@ public final class PrismCoreItem extends Item {
 
     private void beginCooldown(LivingEntity entity) {
         if (entity instanceof Player player) {
-            player.getCooldowns().addCooldown(this, COOLDOWN_TICKS);
+            player.getCooldowns().addCooldown(player.getUseItem(), COOLDOWN_TICKS);
         }
     }
 
@@ -100,7 +104,7 @@ public final class PrismCoreItem extends Item {
 
         PrismBeam beam = this.activeBeam(serverLevel, player);
         if (beam == null) {
-            beam = ModEntities.PRISM_BEAM.get().create(serverLevel);
+            beam = ModEntities.PRISM_BEAM.get().create(serverLevel, EntitySpawnReason.SPAWN_ITEM_USE);
             if (beam == null) {
                 return;
             }
@@ -131,7 +135,7 @@ public final class PrismCoreItem extends Item {
         hits.sort(Comparator.comparingDouble(TargetHit::distanceSquared));
         var source = player.damageSources().playerAttack(player);
         for (TargetHit hit : hits) {
-            if (!hit.target().hurt(source, LASER_DAMAGE)) {
+            if (!hit.target().hurtOrSimulate(source, LASER_DAMAGE)) {
                 continue;
             }
             Entity burning = hit.target() instanceof PartEntity<?> part ? part.getParent() : hit.target();
@@ -155,8 +159,8 @@ public final class PrismCoreItem extends Item {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
-        tooltip.add(Component.translatable("item.mechafauna.prism_core.tooltip"));
+    public void appendHoverText(ItemStack stack, TooltipContext context, TooltipDisplay display, Consumer<Component> tooltip, TooltipFlag flag) {
+        tooltip.accept(Component.translatable("item.mechafauna.prism_core.tooltip"));
     }
 
     private record TargetHit(Entity target, double distanceSquared) {

@@ -3,11 +3,11 @@ package com.hp.mechafauna.client;
 import com.hp.mechafauna.entity.FlameCrawler;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
-import software.bernie.geckolib.renderer.GeoEntityRenderer;
+import com.geckolib.renderer.GeoEntityRenderer;
 
-public final class FlameCrawlerRenderer extends GeoEntityRenderer<FlameCrawler> {
+public final class FlameCrawlerRenderer extends MechRenderer<FlameCrawler> {
     public FlameCrawlerRenderer(EntityRendererProvider.Context context) {
-        super(context, new MechModel<>("flame_crawler"));
+        super(context, "flame_crawler");
     }
 
     @Override

@@ -9,11 +9,10 @@ import net.minecraft.sounds.Music;
 import net.minecraft.world.entity.Entity;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.SelectMusicEvent;
 import org.slf4j.Logger;
 
-@EventBusSubscriber(modid = Mechafauna.MOD_ID, bus = EventBusSubscriber.Bus.GAME, value = Dist.CLIENT)
+@net.neoforged.fml.common.EventBusSubscriber(modid = Mechafauna.MOD_ID, value = Dist.CLIENT)
 public final class SaucerBossMusicEvents {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final double MUSIC_RANGE = 96.0;

@@ -8,19 +8,16 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.asm.enumextension.EnumProxy;
 import net.neoforged.neoforge.client.IArmPoseTransformer;
 import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
 import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
 
-@EventBusSubscriber(modid = Mechafauna.MOD_ID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public final class HeavyMechMachineGunClientExtensions {
     // 双手端枪：持枪手平举，另一只手托住护套，跟随头部俯仰
     public static final EnumProxy<HumanoidModel.ArmPose> ARM_POSE_PARAMETERS = new EnumProxy<>(
-        HumanoidModel.ArmPose.class, true, (IArmPoseTransformer)(model, entity, arm) ->
+        HumanoidModel.ArmPose.class, true, true, (IArmPoseTransformer)(model, entity, arm) ->
             AnimationUtils.animateCrossbowHold(model.rightArm, model.leftArm, model.head, arm == HumanoidArm.RIGHT));
 
     private HeavyMechMachineGunClientExtensions() {

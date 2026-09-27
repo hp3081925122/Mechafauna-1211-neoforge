@@ -1,0 +1,11 @@
+{
+  "cubes": 73,
+  "bones": 14,
+  "frames": 48,
+  "loaded_saved_project": true,
+  "geometry_matches_export": true,
+  "texture": [
+    256,
+    128
+  ]
+}

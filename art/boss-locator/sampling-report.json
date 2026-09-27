@@ -1,0 +1,17 @@
+{
+  "SourceSize": "1254x1254",
+  "OpaqueCrop": {
+    "width": 876,
+    "height": 1230,
+    "x": 208,
+    "y": 16
+  },
+  "SampledSubjectSize": "10x14",
+  "OutputSize": "16x16",
+  "PaletteSamples": 92,
+  "Files": [
+    "E:\\模组\\发cf的模组\\生物\\机械\\Mechafauna-1211-neoforge\\art\\boss-locator\\flying_saucer_locator_16.png",
+    "E:\\模组\\发cf的模组\\生物\\机械\\Mechafauna-1211-neoforge\\src\\main\\resources\\assets\\mechafauna\\textures\\item\\flying_saucer_locator.png",
+    "E:\\模组\\发cf的模组\\生物\\机械\\Mechafauna-1211-neoforge\\art\\boss-locator\\flying_saucer_locator_preview.png"
+  ]
+}

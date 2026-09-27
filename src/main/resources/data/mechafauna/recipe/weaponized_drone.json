@@ -7,15 +7,9 @@
     "srs"
   ],
   "key": {
-    "s": {
-      "item": "mechafauna:mechanical_scrap"
-    },
-    "r": {
-      "item": "minecraft:redstone_block"
-    },
-    "I": {
-      "item": "minecraft:iron_block"
-    }
+    "s": "mechafauna:mechanical_scrap",
+    "r": "minecraft:redstone_block",
+    "I": "minecraft:iron_block"
   },
   "result": {
     "id": "mechafauna:weaponized_drone",

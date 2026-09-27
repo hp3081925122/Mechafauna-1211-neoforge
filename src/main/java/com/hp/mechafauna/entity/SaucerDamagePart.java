@@ -1,6 +1,8 @@
 package com.hp.mechafauna.entity;
 
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.server.level.ServerEntity;
@@ -33,11 +35,11 @@ public final class SaucerDamagePart extends PartEntity<FlyingSaucerBoss> {
     }
 
     @Override
-    protected void readAdditionalSaveData(CompoundTag tag) {
+    protected void readAdditionalSaveData(ValueInput input) {
     }
 
     @Override
-    protected void addAdditionalSaveData(CompoundTag tag) {
+    protected void addAdditionalSaveData(ValueOutput output) {
     }
 
     @Override
@@ -47,8 +49,8 @@ public final class SaucerDamagePart extends PartEntity<FlyingSaucerBoss> {
     }
 
     @Override
-    public boolean hurt(DamageSource source, float amount) {
-        return this.getParent().hurt(this, source, amount);
+    public boolean hurtServer(ServerLevel level, DamageSource source, float amount) {
+        return this.getParent().hurt(this, level, source, amount);
     }
 
     @Override

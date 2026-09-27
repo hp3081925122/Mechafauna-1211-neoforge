@@ -7,15 +7,9 @@
     "RMR"
   ],
   "key": {
-    "R": {
-      "item": "minecraft:redstone"
-    },
-    "M": {
-      "item": "mechafauna:mechanical_scrap"
-    },
-    "T": {
-      "item": "minecraft:tnt"
-    }
+    "R": "minecraft:redstone",
+    "M": "mechafauna:mechanical_scrap",
+    "T": "minecraft:tnt"
   },
   "result": {
     "id": "mechafauna:mechanical_spider_throwable",

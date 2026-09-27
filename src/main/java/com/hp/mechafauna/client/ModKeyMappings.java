@@ -2,18 +2,17 @@ package com.hp.mechafauna.client;
 
 import com.hp.mechafauna.Mechafauna;
 import net.minecraft.client.KeyMapping;
-import net.neoforged.api.distmarker.Dist;
+import net.minecraft.resources.Identifier;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import org.lwjgl.glfw.GLFW;
 
-@EventBusSubscriber(modid = Mechafauna.MOD_ID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public final class ModKeyMappings {
+    private static final KeyMapping.Category CATEGORY = new KeyMapping.Category(Identifier.fromNamespaceAndPath(Mechafauna.MOD_ID, "general"));
     public static final KeyMapping FIRE_SUPPORT = new KeyMapping(
         "key.mechafauna.fire_support",
         GLFW.GLFW_KEY_X,
-        "key.categories.mechafauna"
+        CATEGORY
     );
 
     private ModKeyMappings() {
@@ -21,6 +20,7 @@ public final class ModKeyMappings {
 
     @SubscribeEvent
     public static void register(RegisterKeyMappingsEvent event) {
+        event.registerCategory(CATEGORY);
         event.register(FIRE_SUPPORT);
     }
 }

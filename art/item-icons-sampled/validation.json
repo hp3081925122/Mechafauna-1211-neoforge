@@ -1,0 +1,106 @@
+{
+  "sampled_icons": [
+    {
+      "item": "mechanical_scrap",
+      "resolution": "16x16",
+      "binary_alpha": true,
+      "model_reference_valid": true
+    },
+    {
+      "item": "mechanical_wolf_summon",
+      "resolution": "16x16",
+      "binary_alpha": true,
+      "model_reference_valid": true
+    },
+    {
+      "item": "weaponized_drone",
+      "resolution": "16x16",
+      "binary_alpha": true,
+      "model_reference_valid": true
+    },
+    {
+      "item": "mechanical_spider_throwable",
+      "resolution": "16x16",
+      "binary_alpha": true,
+      "model_reference_valid": true
+    },
+    {
+      "item": "prism_core",
+      "resolution": "16x16",
+      "binary_alpha": true,
+      "model_reference_valid": true
+    },
+    {
+      "item": "mechanical_wolf_spawn_egg",
+      "resolution": "16x16",
+      "binary_alpha": true,
+      "model_reference_valid": true
+    },
+    {
+      "item": "mechanical_tank_spawn_egg",
+      "resolution": "16x16",
+      "binary_alpha": true,
+      "model_reference_valid": true
+    },
+    {
+      "item": "mechanical_drone_spawn_egg",
+      "resolution": "16x16",
+      "binary_alpha": true,
+      "model_reference_valid": true
+    },
+    {
+      "item": "mechanical_spider_spawn_egg",
+      "resolution": "16x16",
+      "binary_alpha": true,
+      "model_reference_valid": true
+    },
+    {
+      "item": "heavy_mech_spawn_egg",
+      "resolution": "16x16",
+      "binary_alpha": true,
+      "model_reference_valid": true
+    },
+    {
+      "item": "flame_crawler_spawn_egg",
+      "resolution": "16x16",
+      "binary_alpha": true,
+      "model_reference_valid": true
+    },
+    {
+      "item": "prism_sentinel_spawn_egg",
+      "resolution": "16x16",
+      "binary_alpha": true,
+      "model_reference_valid": true
+    },
+    {
+      "item": "flying_saucer_boss_spawn_egg",
+      "resolution": "16x16",
+      "binary_alpha": true,
+      "model_reference_valid": true
+    }
+  ],
+  "unchanged_armor": [
+    {
+      "item": "mech_helmet",
+      "unchanged": true,
+      "sha256": "e86f654779f5d3cf24a0f9f822e6087aa889c197606e7a448c731e29a5d48337"
+    },
+    {
+      "item": "mech_chestplate",
+      "unchanged": true,
+      "sha256": "23119c9d5940a49d8ef403c2a9b3dfb6fdeb5849ec4e62f175554a441e41d617"
+    },
+    {
+      "item": "mech_leggings",
+      "unchanged": true,
+      "sha256": "9c479866fc7ae9f1243876b4db08f088ab068999cd2025bdd179dbb756deb24f"
+    },
+    {
+      "item": "mech_boots",
+      "unchanged": true,
+      "sha256": "98234ae8cd1a93b93725a4df97b2dcdd2a4d5c4682d005143950ee608920aaab"
+    }
+  ],
+  "prism_hand_model_preserved": true,
+  "game_visual_check": "未启动客户端检查"
+}

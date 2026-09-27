@@ -1,40 +1,56 @@
 package com.hp.mechafauna.client;
 
 import com.hp.mechafauna.entity.PrismSentinel;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.blaze3d.vertex.VertexFormat;
+import com.geckolib.constant.DataTickets;
+import com.geckolib.renderer.base.RenderPassInfo;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderStateShard;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
+import net.minecraft.util.Mth;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
-import software.bernie.geckolib.renderer.GeoEntityRenderer;
+import com.geckolib.renderer.GeoEntityRenderer;
 
-public final class PrismSentinelRenderer extends GeoEntityRenderer<PrismSentinel> {
-    static final RenderType LASER = RenderType.create("mechafauna_prism_beam",
-        DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.QUADS, 4096, false, false,
-        RenderType.CompositeState.builder()
-            .setShaderState(RenderStateShard.POSITION_COLOR_SHADER)
-            .setTransparencyState(RenderStateShard.ADDITIVE_TRANSPARENCY)
-            .setCullState(RenderStateShard.NO_CULL)
-            .setWriteMaskState(RenderStateShard.COLOR_WRITE)
-            .setDepthTestState(RenderStateShard.LEQUAL_DEPTH_TEST)
-            .createCompositeState(false));
-
+public final class PrismSentinelRenderer extends GeoEntityRenderer<PrismSentinel, PrismSentinelRenderState> {
     public PrismSentinelRenderer(EntityRendererProvider.Context context) {
         super(context, new MechModel<>("prism_sentinel"));
     }
 
     @Override
-    protected void applyRotations(PrismSentinel entity, PoseStack poseStack, float ageInTicks,
-                                  float rotationYaw, float partialTick, float nativeScale) {
-        super.applyRotations(entity, poseStack, ageInTicks,
-            entity.isPerformingAction() ? entity.getLaserModelYaw(partialTick) : rotationYaw, partialTick, nativeScale);
+    public PrismSentinelRenderState createRenderState(PrismSentinel entity, Void context) {
+        return new PrismSentinelRenderState();
+    }
+
+    @Override
+    public void extractRenderState(PrismSentinel entity, PrismSentinelRenderState state, float partialTick) {
+        super.extractRenderState(entity, state, partialTick);
+        state.entity = entity;
+        float bodyYaw = entity.isPerformingAction() ? entity.getLaserModelYaw(partialTick)
+            : Mth.rotLerp(partialTick, entity.yBodyRotO, entity.yBodyRot);
+        state.addGeckolibData(DataTickets.ENTITY_BODY_YAW, bodyYaw);
+        state.time = entity.tickCount + partialTick;
+        state.charge = entity.getLaserChargePower(partialTick);
+        state.laserFiring = entity.isLaserFiring();
+        state.power = entity.getLaserPower(partialTick);
+        if (state.charge > 0.0F || state.laserFiring) {
+            state.laserDirection = Vec3.directionFromRotation(entity.getLaserPitch(partialTick), entity.getLaserYaw(partialTick));
+            state.muzzle = entity.getLaserMuzzle(partialTick).subtract(entity.getPosition(partialTick));
+        }
+        if (state.laserFiring) {
+            PrismSentinel.LaserRay ray = entity.getLaserRay(partialTick);
+            Vec3 position = entity.getPosition(partialTick);
+            state.rayOrigin = ray.origin().subtract(position);
+            state.length = ray.origin().subtract(ray.end()).length();
+            state.laserDirection = ray.direction();
+            state.blockHit = ray.blockHit();
+            state.hitPoints = ray.hitPoints().stream().map(point -> point.subtract(position)).toList();
+        }
     }
 
     @Override
@@ -50,64 +66,57 @@ public final class PrismSentinelRenderer extends GeoEntityRenderer<PrismSentinel
     }
 
     @Override
-    public void render(PrismSentinel entity, float entityYaw, float partialTick, PoseStack poseStack,
-                       MultiBufferSource buffers, int packedLight) {
-        super.render(entity, entityYaw, partialTick, poseStack, buffers, packedLight);
-        float time = entity.tickCount + partialTick;
-        float charge = entity.getLaserChargePower(partialTick);
-        if (charge > 0.0F) {
-            renderEnergyGathering(entity, partialTick, poseStack, buffers, time, charge);
-        }
-        if (!entity.isLaserFiring()) {
+    public void submit(PrismSentinelRenderState state, PoseStack pose, SubmitNodeCollector collector,
+                       CameraRenderState camera) {
+        super.submit(state, pose, collector, camera);
+        if (state.charge <= 0.0F && !state.laserFiring) {
             return;
         }
-        PrismSentinel.LaserRay ray = entity.getLaserRay(partialTick);
-        double length = ray.origin().subtract(ray.end()).length();
-        if (length < 0.01) {
-            return;
-        }
-        float power = entity.getLaserPower(partialTick);
-        float pulse = (float)(1.0 + 0.045 * Math.sin(time * 0.9));
-        Vec3 start = ray.origin().subtract(entity.getPosition(partialTick));
-        Vec3 direction = ray.direction();
-        Vec3 side = Math.abs(direction.y) > 0.98 ? new Vec3(1, 0, 0)
-            : direction.cross(new Vec3(0, 1, 0)).normalize();
-        Vec3 up = side.cross(direction).normalize();
-        VertexConsumer vertices = buffers.getBuffer(LASER);
-        Matrix4f matrix = poseStack.last().pose();
-        cylinder(vertices, matrix, start, direction, side, up, length, 0.24 * pulse * power, 0.4F, 0.15F, 1.0F, 0.09F * power);
-        cylinder(vertices, matrix, start, direction, side, up, length, 0.12 * pulse * power, 0.08F, 0.78F, 1.0F, 0.32F * power);
-        cylinder(vertices, matrix, start, direction, side, up, length, 0.043 * power, 0.8F, 1.0F, 1.0F, 0.85F * power);
-        ring(vertices, matrix, start.add(direction.scale(0.025)), side, up, 0.25 * power, 0.035, time * 0.025, power);
-        for (int i = 0; i < 4; i++) {
-            double distance = ((time * 0.28 + i * 6.0) % 24.0);
-            if (distance < length) {
-                ring(vertices, matrix, start.add(direction.scale(distance)), side, up,
-                    0.16 * power, 0.016, time * 0.015, power * 0.36F);
+        collector.submitCustomGeometry(pose, RenderTypes.lightning(), (entry, vertices) -> {
+            Matrix4f matrix = new Matrix4f(entry.pose());
+            if (state.charge > 0.0F) {
+                renderEnergyGathering(vertices, matrix, state.muzzle, state.laserDirection, state.time, state.charge);
             }
-        }
-        if (ray.blockHit()) {
-            Vec3 impact = start.add(direction.scale(Math.max(0, length - 0.035)));
-            ring(vertices, matrix, impact, side, up, (0.2 + 0.04 * Math.sin(time)) * power,
-                0.07, -time * 0.04, power * 0.8F);
-            cylinder(vertices, matrix, impact.subtract(direction.scale(0.045)), direction, side, up,
-                0.06, 0.11 * power, 0.7F, 1.0F, 1.0F, power * 0.8F);
-        }
-        for (Vec3 hitPoint : ray.hitPoints()) {
-            Vec3 impact = hitPoint.subtract(entity.getPosition(partialTick));
-            ring(vertices, matrix, impact, side, up, 0.16 * power, 0.045, -time * 0.04, power * 0.7F);
-        }
+            if (!state.laserFiring || state.length < 0.01) {
+                return;
+            }
+            float pulse = (float)(1.0 + 0.045 * Math.sin(state.time * 0.9));
+            Vec3 start = state.rayOrigin;
+            Vec3 direction = state.laserDirection;
+            Vec3 side = Math.abs(direction.y) > 0.98 ? new Vec3(1, 0, 0)
+                : direction.cross(new Vec3(0, 1, 0)).normalize();
+            Vec3 up = side.cross(direction).normalize();
+            double length = state.length;
+            float power = state.power;
+            cylinder(vertices, matrix, start, direction, side, up, length, 0.24 * pulse * power, 0.4F, 0.15F, 1.0F, 0.09F * power);
+            cylinder(vertices, matrix, start, direction, side, up, length, 0.12 * pulse * power, 0.08F, 0.78F, 1.0F, 0.32F * power);
+            cylinder(vertices, matrix, start, direction, side, up, length, 0.043 * power, 0.8F, 1.0F, 1.0F, 0.85F * power);
+            ring(vertices, matrix, start.add(direction.scale(0.025)), side, up, 0.25 * power, 0.035, state.time * 0.025, power);
+            for (int i = 0; i < 4; i++) {
+                double distance = ((state.time * 0.28 + i * 6.0) % 24.0);
+                if (distance < length) {
+                    ring(vertices, matrix, start.add(direction.scale(distance)), side, up,
+                        0.16 * power, 0.016, state.time * 0.015, power * 0.36F);
+                }
+            }
+            if (state.blockHit) {
+                Vec3 impact = start.add(direction.scale(Math.max(0, length - 0.035)));
+                ring(vertices, matrix, impact, side, up, (0.2 + 0.04 * Math.sin(state.time)) * power,
+                    0.07, -state.time * 0.04, power * 0.8F);
+                cylinder(vertices, matrix, impact.subtract(direction.scale(0.045)), direction, side, up,
+                    0.06, 0.11 * power, 0.7F, 1.0F, 1.0F, power * 0.8F);
+            }
+            for (Vec3 hitPoint : state.hitPoints) {
+                ring(vertices, matrix, hitPoint, side, up, 0.16 * power, 0.045, -state.time * 0.04, power * 0.7F);
+            }
+        });
     }
 
-    private static void renderEnergyGathering(PrismSentinel entity, float partialTick, PoseStack poseStack,
-                                              MultiBufferSource buffers, float time, float charge) {
-        Vec3 origin = entity.getLaserMuzzle(partialTick).subtract(entity.getPosition(partialTick));
-        Vec3 direction = Vec3.directionFromRotation(entity.getLaserPitch(partialTick), entity.getLaserYaw(partialTick));
+    private static void renderEnergyGathering(VertexConsumer vertices, Matrix4f matrix, Vec3 origin,
+                                              Vec3 direction, float time, float charge) {
         Vec3 side = Math.abs(direction.y) > 0.98 ? new Vec3(1, 0, 0)
             : direction.cross(new Vec3(0, 1, 0)).normalize();
         Vec3 up = side.cross(direction).normalize();
-        VertexConsumer vertices = buffers.getBuffer(LASER);
-        Matrix4f matrix = poseStack.last().pose();
         float pulse = (float)(0.82 + 0.18 * Math.sin(time * 0.55));
         ring(vertices, matrix, origin.subtract(direction.scale(0.08)), side, up,
             0.12 + 0.34 * (1.0 - charge), 0.025, time * 0.04, charge * 0.48F * pulse);

@@ -74,7 +74,7 @@ public final class MechanicalWolf extends MechanicalMob {
 
     @Override
     protected void onActionStarted(String action, LivingEntity target) {
-        this.level().playSound(null, this.blockPosition(), SoundEvents.WOLF_GROWL, SoundSource.HOSTILE, 0.7F, 0.8F);
+        this.level().playSound(null, this.blockPosition(), SoundEvents.WOLF_SOUNDS.get(net.minecraft.world.entity.animal.wolf.WolfSoundVariants.SoundSet.CLASSIC).adultSounds().growlSound().value(), SoundSource.HOSTILE, 0.7F, 0.8F);
     }
 
     @Override

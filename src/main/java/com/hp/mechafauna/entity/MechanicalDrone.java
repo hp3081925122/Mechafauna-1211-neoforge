@@ -6,7 +6,9 @@ import java.util.Optional;
 import java.util.UUID;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -18,6 +20,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.OwnableEntity;
+import net.minecraft.world.entity.EntityReference;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.control.FlyingMoveControl;
@@ -29,17 +32,17 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.entity.ai.navigation.FlyingPathNavigation;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
-import software.bernie.geckolib.animation.AnimatableManager;
-import software.bernie.geckolib.animation.AnimationController;
-import software.bernie.geckolib.animation.PlayState;
-import software.bernie.geckolib.animation.RawAnimation;
+import com.geckolib.animatable.manager.AnimatableManager;
+import com.geckolib.animation.AnimationController;
+import com.geckolib.animation.object.PlayState;
+import com.geckolib.animation.RawAnimation;
 
 public final class MechanicalDrone extends MechanicalMob implements OwnableEntity {
     private static final String GUN = "gun";
     private static final String HOVER = "animation.mechanical_drone.hover";
     private static final String ROTORS = "animation.mechanical_drone.rotors";
     private static final double KNOCKBACK_RESISTANCE = 0.20;
-    private static final EntityDataAccessor<Optional<UUID>> DATA_OWNER_UUID = SynchedEntityData.defineId(MechanicalDrone.class, EntityDataSerializers.OPTIONAL_UUID);
+    private static final EntityDataAccessor<Optional<EntityReference<LivingEntity>>> DATA_OWNER_UUID = SynchedEntityData.defineId(MechanicalDrone.class, EntityDataSerializers.OPTIONAL_LIVING_ENTITY_REFERENCE);
     private boolean manualAscend;
     private boolean manualDescend;
     private boolean manualFiring;
@@ -60,7 +63,7 @@ public final class MechanicalDrone extends MechanicalMob implements OwnableEntit
     public void tick() {
         super.tick();
         if (this.isOwnedDrone()) {
-            if (!this.level().isClientSide) {
+            if (!this.level().isClientSide()) {
                 if (!(this.getControllingPassenger() instanceof Player player) || !this.isOwnedBy(player)) {
                     this.setManualControls(false, false, false);
                 } else if (this.manualFiring && this.tickCount % 4 == 0) {
@@ -72,7 +75,7 @@ public final class MechanicalDrone extends MechanicalMob implements OwnableEntit
             }
             return;
         }
-        if (!this.level().isClientSide) {
+        if (!this.level().isClientSide()) {
             double ceiling = this.getFlightCeiling();
             if (this.getY() > ceiling) {
                 this.getMoveControl().setWantedPosition(this.getX(), ceiling, this.getZ(), 1.0);
@@ -81,14 +84,18 @@ public final class MechanicalDrone extends MechanicalMob implements OwnableEntit
     }
 
     public void setOwner(Player owner) {
-        this.entityData.set(DATA_OWNER_UUID, Optional.of(owner.getUUID()));
+        this.entityData.set(DATA_OWNER_UUID, Optional.of(EntityReference.of(owner)));
         this.setPersistenceRequired();
         this.setNoAi(true);
         this.setTarget(null);
     }
 
-    @Override
     public UUID getOwnerUUID() {
+        return this.entityData.get(DATA_OWNER_UUID).map(EntityReference::getUUID).orElse(null);
+    }
+
+    @Override
+    public EntityReference<LivingEntity> getOwnerReference() {
         return this.entityData.get(DATA_OWNER_UUID).orElse(null);
     }
 
@@ -106,7 +113,7 @@ public final class MechanicalDrone extends MechanicalMob implements OwnableEntit
         this.manualAscend = ascend;
         this.manualDescend = descend;
         this.manualFiring = firing;
-        if (startedFiring && !this.level().isClientSide) {
+        if (startedFiring && !this.level().isClientSide()) {
             this.triggerAnim("action", GUN);
         }
     }
@@ -129,10 +136,10 @@ public final class MechanicalDrone extends MechanicalMob implements OwnableEntit
         if (!this.isOwnedBy(player) || !player.getItemInHand(hand).isEmpty()) {
             return super.mobInteract(player, hand);
         }
-        if (this.level().isClientSide) {
-            return InteractionResult.sidedSuccess(true);
+        if (this.level().isClientSide()) {
+            return InteractionResult.SUCCESS;
         }
-        return player.startRiding(this) ? InteractionResult.sidedSuccess(false) : InteractionResult.PASS;
+        return player.startRiding(this) ? InteractionResult.CONSUME : InteractionResult.PASS;
     }
 
     @Override
@@ -155,7 +162,7 @@ public final class MechanicalDrone extends MechanicalMob implements OwnableEntit
 
     @Override
     public void travel(Vec3 input) {
-        if (this.isOwnedDrone() && this.getControllingPassenger() instanceof Player && this.isControlledByLocalInstance()) {
+        if (this.isOwnedDrone() && this.getControllingPassenger() instanceof Player) {
             this.moveRelative(0.085F, input);
             this.move(MoverType.SELF, this.getDeltaMovement());
             this.setDeltaMovement(this.getDeltaMovement().scale(0.82));
@@ -166,12 +173,12 @@ public final class MechanicalDrone extends MechanicalMob implements OwnableEntit
     }
 
     @Override
-    public boolean isAlliedTo(Entity other) {
+    protected boolean considersEntityAsAlly(Entity other) {
         if (this.isOwnedBy(other)) {
             return true;
         }
         LivingEntity owner = this.getOwner();
-        return owner != null && owner.isAlliedTo(other) || super.isAlliedTo(other);
+        return owner != null && owner.isAlliedTo(other) || super.considersEntityAsAlly(other);
     }
 
     @Override
@@ -180,21 +187,21 @@ public final class MechanicalDrone extends MechanicalMob implements OwnableEntit
     }
 
     @Override
-    public void addAdditionalSaveData(CompoundTag tag) {
-        super.addAdditionalSaveData(tag);
+    protected void addAdditionalSaveData(ValueOutput output) {
+        super.addAdditionalSaveData(output);
         UUID owner = this.getOwnerUUID();
         if (owner != null) {
-            tag.putUUID("Owner", owner);
+            output.store("Owner", UUIDUtil.CODEC, owner);
         }
     }
 
     @Override
-    public void readAdditionalSaveData(CompoundTag tag) {
-        super.readAdditionalSaveData(tag);
-        if (tag.hasUUID("Owner")) {
-            this.entityData.set(DATA_OWNER_UUID, Optional.of(tag.getUUID("Owner")));
+    protected void readAdditionalSaveData(ValueInput input) {
+        super.readAdditionalSaveData(input);
+        input.read("Owner", UUIDUtil.CODEC).ifPresent(owner -> {
+            this.entityData.set(DATA_OWNER_UUID, Optional.of(EntityReference.of(owner)));
             this.setNoAi(true);
-        }
+        });
     }
 
     private LivingEntity getAimedHostile(Player player) {
@@ -262,10 +269,7 @@ public final class MechanicalDrone extends MechanicalMob implements OwnableEntit
 
     @Override
     protected void addExtraControllers(AnimatableManager.ControllerRegistrar controllers) {
-        controllers.add(new AnimationController<>(this, "rotors", 0, state -> {
-            state.setAnimation(RawAnimation.begin().thenLoop(ROTORS));
-            return PlayState.CONTINUE;
-        }));
+        controllers.add(new AnimationController<>("rotors", 0, state -> state.setAndContinue(RawAnimation.begin().thenLoop(ROTORS))));
     }
 
     @Override

@@ -3,7 +3,9 @@ package com.hp.mechafauna.entity;
 import com.hp.mechafauna.registry.ModItems;
 import java.util.Optional;
 import java.util.UUID;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -17,6 +19,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.OwnableEntity;
+import net.minecraft.world.entity.EntityReference;
 import net.minecraft.world.entity.PlayerRideableJumping;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -24,18 +27,19 @@ import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.phys.Vec3;
-import software.bernie.geckolib.animatable.GeoEntity;
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.animation.AnimatableManager;
-import software.bernie.geckolib.animation.AnimationController;
-import software.bernie.geckolib.animation.PlayState;
-import software.bernie.geckolib.animation.RawAnimation;
-import software.bernie.geckolib.util.GeckoLibUtil;
+import com.geckolib.animatable.GeoEntity;
+import com.geckolib.animatable.instance.AnimatableInstanceCache;
+import com.geckolib.animatable.manager.AnimatableManager;
+import com.geckolib.animation.AnimationController;
+import com.geckolib.animation.object.PlayState;
+import com.geckolib.animation.RawAnimation;
+import com.geckolib.util.GeckoLibUtil;
 
 public final class RideableMechanicalWolf extends Mob implements GeoEntity, OwnableEntity, PlayerRideableJumping {
-    private static final EntityDataAccessor<Optional<UUID>> DATA_OWNER = SynchedEntityData.defineId(
-        RideableMechanicalWolf.class, EntityDataSerializers.OPTIONAL_UUID);
+    private static final EntityDataAccessor<Optional<EntityReference<LivingEntity>>> DATA_OWNER = SynchedEntityData.defineId(
+        RideableMechanicalWolf.class, EntityDataSerializers.OPTIONAL_LIVING_ENTITY_REFERENCE);
     private final AnimatableInstanceCache animationCache = GeckoLibUtil.createInstanceCache(this);
     private int jumpPower;
 
@@ -56,12 +60,16 @@ public final class RideableMechanicalWolf extends Mob implements GeoEntity, Owna
     }
 
     public void setOwner(Player owner) {
-        this.entityData.set(DATA_OWNER, Optional.of(owner.getUUID()));
+        this.entityData.set(DATA_OWNER, Optional.of(EntityReference.of(owner)));
         this.setPersistenceRequired();
     }
 
-    @Override
     public UUID getOwnerUUID() {
+        return this.entityData.get(DATA_OWNER).map(EntityReference::getUUID).orElse(null);
+    }
+
+    @Override
+    public EntityReference<LivingEntity> getOwnerReference() {
         return this.entityData.get(DATA_OWNER).orElse(null);
     }
 
@@ -87,12 +95,12 @@ public final class RideableMechanicalWolf extends Mob implements GeoEntity, Owna
     }
 
     @Override
-    public boolean hurt(DamageSource source, float amount) {
+    public boolean hurtServer(ServerLevel level, DamageSource source, float amount) {
         return false;
     }
 
     @Override
-    public boolean causeFallDamage(float fallDistance, float damageMultiplier, DamageSource source) {
+    public boolean causeFallDamage(double fallDistance, float damageMultiplier, DamageSource source) {
         return false;
     }
 
@@ -102,13 +110,13 @@ public final class RideableMechanicalWolf extends Mob implements GeoEntity, Owna
             return InteractionResult.PASS;
         }
         if (player.isShiftKeyDown()) {
-            if (!this.level().isClientSide) {
+            if (!this.level().isClientSide()) {
                 this.recall(player);
             }
-            return InteractionResult.sidedSuccess(this.level().isClientSide());
+            return this.level().isClientSide() ? InteractionResult.SUCCESS : InteractionResult.CONSUME;
         }
-        if (this.level().isClientSide) {
-            return InteractionResult.sidedSuccess(true);
+        if (this.level().isClientSide()) {
+            return InteractionResult.SUCCESS;
         }
         return player.startRiding(this) ? InteractionResult.CONSUME : InteractionResult.PASS;
     }
@@ -145,12 +153,11 @@ public final class RideableMechanicalWolf extends Mob implements GeoEntity, Owna
         super.tickRidden(player, input);
         this.setRot(player.getYRot(), player.getXRot() * 0.5F);
         this.yRotO = this.yBodyRot = this.yHeadRot = this.getYRot();
-        if (this.isControlledByLocalInstance() && this.onGround() && this.jumpPower > 0) {
+        if (this.getControllingPassenger() == player && this.onGround() && this.jumpPower > 0) {
             float scale = this.jumpPower >= 90 ? 1.0F : 0.4F + 0.4F * this.jumpPower / 90.0F;
             this.jumpPower = 0;
             Vec3 motion = this.getDeltaMovement();
             this.setDeltaMovement(motion.x, this.getJumpPower() * scale, motion.z);
-            this.hasImpulse = true;
         }
     }
 
@@ -186,7 +193,7 @@ public final class RideableMechanicalWolf extends Mob implements GeoEntity, Owna
         if (power > 0) {
             this.jumpPower = power;
         }
-        this.level().playSound(null, this, SoundEvents.WOLF_AMBIENT, SoundSource.NEUTRAL, 0.5F, 1.5F);
+        this.level().playSound(null, this, SoundEvents.WOLF_STEP.value(), SoundSource.NEUTRAL, 0.5F, 1.5F);
     }
 
     @Override
@@ -195,12 +202,11 @@ public final class RideableMechanicalWolf extends Mob implements GeoEntity, Owna
 
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
-        controllers.add(new AnimationController<>(this, "movement", 4, state -> {
-            if (state.getLimbSwingAmount() <= 0.05F) {
+        controllers.add(new AnimationController<>("movement", 4, state -> {
+            if (!state.isMoving()) {
                 return PlayState.STOP;
             }
-            state.setAnimation(RawAnimation.begin().thenLoop("run"));
-            return PlayState.CONTINUE;
+            return state.setAndContinue(RawAnimation.begin().thenLoop("run"));
         }));
     }
 
@@ -210,20 +216,20 @@ public final class RideableMechanicalWolf extends Mob implements GeoEntity, Owna
     }
 
     @Override
-    public void addAdditionalSaveData(CompoundTag tag) {
-        super.addAdditionalSaveData(tag);
+    protected void addAdditionalSaveData(ValueOutput output) {
+        super.addAdditionalSaveData(output);
         UUID owner = this.getOwnerUUID();
         if (owner != null) {
-            tag.putUUID("Owner", owner);
+            output.store("Owner", UUIDUtil.CODEC, owner);
         }
     }
 
     @Override
-    public void readAdditionalSaveData(CompoundTag tag) {
-        super.readAdditionalSaveData(tag);
-        if (tag.hasUUID("Owner")) {
-            this.entityData.set(DATA_OWNER, Optional.of(tag.getUUID("Owner")));
+    protected void readAdditionalSaveData(ValueInput input) {
+        super.readAdditionalSaveData(input);
+        input.read("Owner", UUIDUtil.CODEC).ifPresent(owner -> {
+            this.entityData.set(DATA_OWNER, Optional.of(EntityReference.of(owner)));
             this.setPersistenceRequired();
-        }
+        });
     }
 }

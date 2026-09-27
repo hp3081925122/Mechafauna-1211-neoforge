@@ -2,7 +2,8 @@ package com.hp.mechafauna.entity;
 
 import java.util.List;
 import java.util.Map;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
@@ -62,18 +63,18 @@ public final class FlameCrawler extends MechanicalMob {
     }
 
     @Override
-    public void addAdditionalSaveData(CompoundTag tag) {
-        super.addAdditionalSaveData(tag);
+    protected void addAdditionalSaveData(ValueOutput output) {
+        super.addAdditionalSaveData(output);
         int fuseTicks = this.entityData.get(DATA_DETONATION_FUSE_TICKS);
         if (fuseTicks >= 0) {
-            tag.putInt("DetonationFuseTicks", fuseTicks);
+            output.putInt("DetonationFuseTicks", fuseTicks);
         }
     }
 
     @Override
-    public void readAdditionalSaveData(CompoundTag tag) {
-        super.readAdditionalSaveData(tag);
-        this.entityData.set(DATA_DETONATION_FUSE_TICKS, tag.contains("DetonationFuseTicks") ? tag.getInt("DetonationFuseTicks") : -1);
+    protected void readAdditionalSaveData(ValueInput input) {
+        super.readAdditionalSaveData(input);
+        this.entityData.set(DATA_DETONATION_FUSE_TICKS, input.getIntOr("DetonationFuseTicks", -1));
     }
 
     @Override
@@ -84,17 +85,17 @@ public final class FlameCrawler extends MechanicalMob {
         }
         if (!this.isDetonationPrimed() && !this.isDeadOrDying()) {
             this.level().playSound(player, this.getX(), this.getY(), this.getZ(), SoundEvents.FLINTANDSTEEL_USE, this.getSoundSource(), 1.0F, this.random.nextFloat() * 0.4F + 0.8F);
-            if (!this.level().isClientSide && this.primeForDetonation(player)) {
-                item.hurtAndBreak(1, player, LivingEntity.getSlotForHand(hand));
+            if (!this.level().isClientSide() && this.primeForDetonation(player)) {
+                item.hurtAndBreak(1, player, hand.asEquipmentSlot());
             }
         }
-        return InteractionResult.sidedSuccess(this.level().isClientSide);
+        return this.level().isClientSide() ? InteractionResult.SUCCESS : InteractionResult.CONSUME;
     }
 
     @Override
     public void tick() {
         super.tick();
-        if (this.level().isClientSide) {
+        if (this.level().isClientSide()) {
             if (this.isFlameWindow()) {
                 this.emitFlameParticles();
             }
@@ -163,7 +164,7 @@ public final class FlameCrawler extends MechanicalMob {
     }
 
     public boolean primeForDetonation(LivingEntity target) {
-        if (this.level().isClientSide || !this.isAlive() || this.isDetonationPrimed()) {
+        if (this.level().isClientSide() || !this.isAlive() || this.isDetonationPrimed()) {
             return false;
         }
         if (target != null && target.isAlive() && target != this) {
@@ -177,7 +178,7 @@ public final class FlameCrawler extends MechanicalMob {
     }
 
     private void detonate() {
-        if (this.level().isClientSide || this.isRemoved()) {
+        if (this.level().isClientSide() || this.isRemoved()) {
             return;
         }
         this.dead = true;
@@ -241,7 +242,7 @@ public final class FlameCrawler extends MechanicalMob {
                 continue;
             }
             intersections++;
-            if (victim.hurt(this.damageSources().mobAttack(this), FLAME_DAMAGE)) {
+            if (victim.hurtOrSimulate(this.damageSources().mobAttack(this), FLAME_DAMAGE)) {
                 victim.igniteForSeconds(FLAME_IGNITE_SECONDS);
                 damaged++;
             }
@@ -323,7 +324,7 @@ public final class FlameCrawler extends MechanicalMob {
                 double speed = 0.018 + layer * 0.006;
                 Vec3 drift = side.scale(Math.cos(angle) * 0.006).add(up.scale(Math.sin(angle) * 0.006));
                 Vec3 velocity = direction.scale(speed).add(drift);
-                this.level().addParticle(ParticleTypes.FLAME, true, particlePosition.x, particlePosition.y,
+                this.level().addParticle(ParticleTypes.FLAME, true, false, particlePosition.x, particlePosition.y,
                     particlePosition.z, velocity.x, velocity.y, velocity.z);
             }
         }

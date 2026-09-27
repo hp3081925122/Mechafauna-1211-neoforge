@@ -1,0 +1,27 @@
+[
+  {
+    "part": "barrel",
+    "elements": 9,
+    "geometry_uv_texture_match": true
+  },
+  {
+    "part": "bipod",
+    "elements": 5,
+    "geometry_uv_texture_match": true
+  },
+  {
+    "part": "feed",
+    "elements": 22,
+    "geometry_uv_texture_match": true
+  },
+  {
+    "part": "receiver",
+    "elements": 13,
+    "geometry_uv_texture_match": true
+  },
+  {
+    "part": "stock_grip",
+    "elements": 11,
+    "geometry_uv_texture_match": true
+  }
+]

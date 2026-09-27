@@ -1,0 +1,13 @@
+{
+  "cubes": 73,
+  "bones": 14,
+  "mirrored_pairs": 27,
+  "texture_size": [
+    256,
+    128
+  ],
+  "parts_match_combined": true,
+  "uv_in_bounds": true,
+  "unique_ids": true,
+  "binary_alpha": true
+}

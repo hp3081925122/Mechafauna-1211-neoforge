@@ -7,12 +7,8 @@
     "S S"
   ],
   "key": {
-    "S": {
-      "item": "mechafauna:mechanical_scrap"
-    },
-    "D": {
-      "item": "minecraft:diamond"
-    }
+    "S": "mechafauna:mechanical_scrap",
+    "D": "minecraft:diamond"
   },
   "result": {
     "id": "mechafauna:mech_boots",

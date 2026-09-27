@@ -22,7 +22,7 @@ public final class WeaponPose {
     private final JsonObject animationData;
 
     private WeaponPose(String modelName) {
-        JsonArray sourceBones = read("geo/" + modelName + ".geo.json")
+        JsonArray sourceBones = read("geckolib/models/" + modelName + ".geo.json")
             .getAsJsonArray("minecraft:geometry").get(0).getAsJsonObject().getAsJsonArray("bones");
         for (JsonElement entry : sourceBones) {
             JsonObject bone = entry.getAsJsonObject();
@@ -31,7 +31,7 @@ public final class WeaponPose {
                 vector(bone.get("pivot"), Vec3.ZERO).multiply(-1, 1, 1),
                 vector(bone.get("rotation"), Vec3.ZERO)));
         }
-        this.animationData = read("animations/" + modelName + ".animation.json").getAsJsonObject("animations");
+        this.animationData = read("geckolib/animations/" + modelName + ".animation.json").getAsJsonObject("animations");
     }
 
     public static WeaponPose forModel(String modelName) {

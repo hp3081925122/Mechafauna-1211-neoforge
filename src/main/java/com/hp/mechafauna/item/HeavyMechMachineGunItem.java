@@ -10,12 +10,13 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Item.TooltipContext;
+import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ClipContext;
@@ -26,16 +27,16 @@ import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
 import com.hp.mechafauna.client.renderer.HeavyMechMachineGunRenderer;
 import java.util.function.Consumer;
-import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
-import software.bernie.geckolib.animatable.GeoItem;
-import software.bernie.geckolib.animatable.client.GeoRenderProvider;
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.animation.AnimatableManager;
-import software.bernie.geckolib.animation.AnimationController;
-import software.bernie.geckolib.animation.PlayState;
-import software.bernie.geckolib.animation.RawAnimation;
-import software.bernie.geckolib.constant.DataTickets;
-import software.bernie.geckolib.util.GeckoLibUtil;
+import com.geckolib.animatable.GeoItem;
+import com.geckolib.animatable.client.GeoRenderProvider;
+import com.geckolib.animatable.instance.AnimatableInstanceCache;
+import com.geckolib.animatable.manager.AnimatableManager;
+import com.geckolib.animation.AnimationController;
+import com.geckolib.animation.object.PlayState;
+import com.geckolib.animation.RawAnimation;
+import com.geckolib.constant.DataTickets;
+import com.geckolib.renderer.GeoItemRenderer;
+import com.geckolib.util.GeckoLibUtil;
 
 public final class HeavyMechMachineGunItem extends Item implements GeoItem {
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -66,8 +67,8 @@ public final class HeavyMechMachineGunItem extends Item implements GeoItem {
         {-1, -1}
     };
 
-    public HeavyMechMachineGunItem() {
-        super(new Item.Properties().durability(MAX_DURABILITY));
+    public HeavyMechMachineGunItem(Item.Properties properties) {
+        super(properties.durability(MAX_DURABILITY));
     }
 
     @Override
@@ -76,7 +77,7 @@ public final class HeavyMechMachineGunItem extends Item implements GeoItem {
             private HeavyMechMachineGunRenderer renderer;
 
             @Override
-            public BlockEntityWithoutLevelRenderer getGeoItemRenderer() {
+            public GeoItemRenderer<?> getGeoItemRenderer() {
                 if (this.renderer == null) {
                     this.renderer = new HeavyMechMachineGunRenderer();
                 }
@@ -88,9 +89,9 @@ public final class HeavyMechMachineGunItem extends Item implements GeoItem {
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
         // 持有者正在按住使用时循环开火动画，否则保持待机隐藏枪口火焰
-        controllers.add(new AnimationController<>(this, "fire", 0, state -> {
-            ItemStack stack = state.getData(DataTickets.ITEMSTACK);
-            if (stack != null && HeavyMechMachineGunClientState.isFiring(stack)) {
+        controllers.add(new AnimationController<>("fire", 0, state -> {
+            Long instanceId = state.getDataOrDefault(DataTickets.ANIMATABLE_INSTANCE_ID, Long.MAX_VALUE);
+            if (HeavyMechMachineGunClientState.isFiring(instanceId)) {
                 return state.setAndContinue(FIRE_ANIMATION);
             }
             return state.setAndContinue(IDLE_ANIMATION);
@@ -103,21 +104,21 @@ public final class HeavyMechMachineGunItem extends Item implements GeoItem {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
-        tooltip.add(Component.translatable("item.mechafauna.heavy_mech_machine_gun.tooltip").withStyle(ChatFormatting.GRAY));
+    public void appendHoverText(ItemStack stack, TooltipContext context, TooltipDisplay display, java.util.function.Consumer<Component> tooltip, TooltipFlag flag) {
+        tooltip.accept(Component.translatable("item.mechafauna.heavy_mech_machine_gun.tooltip").withStyle(ChatFormatting.GRAY));
         if (ReinforcementCoreItem.hasBulletDamageUpgrade(stack)) {
-            tooltip.add(Component.translatable("item.mechafauna.reinforcement_core.weapon_upgrade").withStyle(ChatFormatting.GOLD));
+            tooltip.accept(Component.translatable("item.mechafauna.reinforcement_core.weapon_upgrade").withStyle(ChatFormatting.GOLD));
         }
     }
 
     @Override
-    public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+    public InteractionResult use(Level level, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
-        if (player.getCooldowns().isOnCooldown(this)) {
-            return InteractionResultHolder.fail(stack);
+        if (player.getCooldowns().isOnCooldown(stack)) {
+            return InteractionResult.FAIL;
         }
         player.startUsingItem(hand);
-        return InteractionResultHolder.consume(stack);
+        return InteractionResult.CONSUME;
     }
 
     @Override
@@ -126,41 +127,47 @@ public final class HeavyMechMachineGunItem extends Item implements GeoItem {
     }
 
     @Override
-    public void inventoryTick(ItemStack stack, Level level, Entity entity, int slotId, boolean isSelected) {
-        if (entity instanceof Player player && level instanceof ServerLevel serverLevel && GeoItem.getId(stack) == Long.MAX_VALUE) {
-            long instanceId = GeoItem.getOrAssignId(stack, serverLevel);
+    public void inventoryTick(ItemStack stack, ServerLevel level, Entity entity, net.minecraft.world.entity.EquipmentSlot slot) {
+        if (entity instanceof Player player && GeoItem.getId(stack) == Long.MAX_VALUE) {
+            long instanceId = GeoItem.getOrAssignId(stack, level);
             if (instanceId != Long.MAX_VALUE) {
-                LOGGER.debug("Assigned machine gun animation stack id={} player={} slot={}", instanceId, player.getId(), slotId);
+                LOGGER.debug("Assigned machine gun animation stack id={} player={} slot={}", instanceId, player.getId(), slot);
             }
         }
     }
 
     @Override
     public void onUseTick(Level level, LivingEntity entity, ItemStack stack, int remainingUseTicks) {
-        if (!(entity instanceof Player player) || !(level instanceof ServerLevel serverLevel)) {
+        if (!(entity instanceof Player player)) {
             return;
         }
         int usedTicks = MAX_FIRE_TICKS - remainingUseTicks;
         if (usedTicks % SHOT_INTERVAL_TICKS != 0) {
             return;
         }
-        this.fireVolley(serverLevel, player, stack, usedTicks > IGNITION_THRESHOLD_TICKS);
+        if (level instanceof ServerLevel serverLevel) {
+            this.fireVolley(serverLevel, player, stack, usedTicks > IGNITION_THRESHOLD_TICKS);
+        } else if (level.isClientSide()) {
+            HeavyMechMachineGunClientState.spawnFirstPersonMuzzleFlash(level, player);
+        }
     }
 
     @Override
-    public void releaseUsing(ItemStack stack, Level level, LivingEntity entity, int remainingUseTicks) {
+    public boolean releaseUsing(ItemStack stack, Level level, LivingEntity entity, int remainingUseTicks) {
         if (entity instanceof Player player) {
             int usedTicks = Math.max(0, Math.min(MAX_FIRE_TICKS, MAX_FIRE_TICKS - remainingUseTicks));
             if (usedTicks > 0) {
-                player.getCooldowns().addCooldown(this, usedTicks);
+                player.getCooldowns().addCooldown(stack, usedTicks);
             }
+            return true;
         }
+        return false;
     }
 
     @Override
     public ItemStack finishUsingItem(ItemStack stack, Level level, LivingEntity entity) {
         if (entity instanceof Player player) {
-            player.getCooldowns().addCooldown(this, MAX_FIRE_TICKS);
+            player.getCooldowns().addCooldown(stack, MAX_FIRE_TICKS);
         }
         return stack;
     }
@@ -189,14 +196,14 @@ public final class HeavyMechMachineGunItem extends Item implements GeoItem {
             projectile.setPos(muzzle.x, muzzle.y, muzzle.z);
             projectile.shoot(shotDirection.x, shotDirection.y, shotDirection.z, BULLET_SPEED, 0.0F);
             level.addFreshEntity(projectile);
-            stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
+            stack.hurtAndBreak(1, player, player.getUsedItemHand().asEquipmentSlot());
             if (stack.isEmpty()) {
                 return;
             }
         }
     }
 
-    private Vec3 muzzlePosition(ServerLevel level, Player player, Vec3 lookDirection) {
+    static Vec3 muzzlePosition(Level level, Player player, Vec3 lookDirection) {
         Vec3 eye = player.getEyePosition();
         Vec3 reference = new Vec3(0.0, 1.0, 0.0);
         Vec3 right;

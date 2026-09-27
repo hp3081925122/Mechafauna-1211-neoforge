@@ -7,6 +7,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.level.Level;
+import net.minecraft.server.level.ServerLevel;
 
 public abstract class MechanicalMob extends AnimatedHostileMob {
     protected MechanicalMob(EntityType<? extends Monster> entityType, Level level) {
@@ -32,12 +33,12 @@ public abstract class MechanicalMob extends AnimatedHostileMob {
     }
 
     @Override
-    public boolean causeFallDamage(float fallDistance, float damageMultiplier, DamageSource damageSource) {
+    public boolean causeFallDamage(double fallDistance, float damageMultiplier, DamageSource damageSource) {
         return false;
     }
 
     @Override
-    public boolean hurt(DamageSource damageSource, float amount) {
-        return super.hurt(damageSource, damageSource.is(DamageTypeTags.IS_EXPLOSION) ? amount * 0.4F : amount);
+    public boolean hurtServer(ServerLevel level, DamageSource damageSource, float amount) {
+        return super.hurtServer(level, damageSource, damageSource.is(DamageTypeTags.IS_EXPLOSION) ? amount * 0.4F : amount);
     }
 }

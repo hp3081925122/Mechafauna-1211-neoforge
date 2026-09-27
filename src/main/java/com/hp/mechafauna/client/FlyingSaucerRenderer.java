@@ -1,30 +1,21 @@
 package com.hp.mechafauna.client;
 
 import com.hp.mechafauna.entity.FlyingSaucerBoss;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.blaze3d.vertex.VertexFormat;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderStateShard;
-import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
-import software.bernie.geckolib.renderer.GeoEntityRenderer;
+import com.geckolib.renderer.base.GeoRenderState;
+import com.geckolib.renderer.base.BoneSnapshots;
+import com.geckolib.renderer.base.RenderPassInfo;
+import com.geckolib.renderer.GeoEntityRenderer;
 
-public final class FlyingSaucerRenderer extends GeoEntityRenderer<FlyingSaucerBoss> {
-    // 按透明度叠加发光，保证淡入淡出生效
-    static final RenderType GLOW = RenderType.create("mechafauna_saucer_laser",
-        DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.QUADS, 8192, false, false,
-        RenderType.CompositeState.builder()
-            .setShaderState(RenderStateShard.POSITION_COLOR_SHADER)
-            .setTransparencyState(RenderStateShard.LIGHTNING_TRANSPARENCY)
-            .setCullState(RenderStateShard.NO_CULL)
-            .setWriteMaskState(RenderStateShard.COLOR_WRITE)
-            .setDepthTestState(RenderStateShard.LEQUAL_DEPTH_TEST)
-            .createCompositeState(false));
+public final class FlyingSaucerRenderer extends GeoEntityRenderer<FlyingSaucerBoss, FlyingSaucerRenderState> {
     private static final Vec3 SIDE = new Vec3(1.0, 0.0, 0.0);
     private static final Vec3 FORWARD = new Vec3(0.0, 0.0, 1.0);
     private static final Vec3 DOWN = new Vec3(0.0, -1.0, 0.0);
@@ -34,37 +25,57 @@ public final class FlyingSaucerRenderer extends GeoEntityRenderer<FlyingSaucerBo
     }
 
     @Override
-    protected float getDeathMaxRotation(FlyingSaucerBoss animatable) {
-        return 0.0F;
+    protected float getDeathMaxRotation(GeoRenderState state) {
+        return state instanceof FlyingSaucerRenderState saucerState && saucerState.dying
+            ? 0.0F : super.getDeathMaxRotation(state);
     }
 
     @Override
-    public void render(FlyingSaucerBoss entity, float entityYaw, float partialTick, PoseStack poseStack,
-                       MultiBufferSource buffers, int packedLight) {
-        super.render(entity, entityYaw, partialTick, poseStack, buffers, packedLight);
-        // 死亡爆炸特效
-        if (entity.isDeadOrDying()) {
-            this.renderDeathExplosion(buffers.getBuffer(GLOW), poseStack.last().pose(), entity, partialTick);
-        }
-        // 召唤增援的传输光束
-        if (entity.getSummonTick() > 0) {
-            Vec3 summonPosition = entity.getPosition(partialTick);
-            Vec3 summonOrigin = entity.getLaserOrigin(summonPosition).subtract(summonPosition);
-            Vec3 summonGround = entity.getSummonPoint().subtract(summonPosition);
-            if (summonGround.y < summonOrigin.y) {
-                this.renderSummon(buffers.getBuffer(GLOW), poseStack.last().pose(), summonOrigin, summonGround,
-                    entity.getSummonTick() + partialTick, entity.getSummonKind());
-            }
-        }
-        int laserTick = entity.getLaserTick();
-        if (laserTick <= 0) {
+    public FlyingSaucerRenderState createRenderState(FlyingSaucerBoss entity, Void context) {
+        return new FlyingSaucerRenderState();
+    }
+
+    @Override
+    public void extractRenderState(FlyingSaucerBoss entity, FlyingSaucerRenderState state, float partialTick) {
+        super.extractRenderState(entity, state, partialTick);
+        state.entity = entity;
+        state.dying = entity.isDeadOrDying();
+        state.laserTick = entity.getLaserTick();
+        state.summonTick = entity.getSummonTick();
+        state.summonKind = entity.getSummonKind();
+        Vec3 position = entity.getPosition(partialTick);
+        state.laserOrigin = entity.getLaserOrigin(position).subtract(position);
+        state.laserImpact = entity.getLaserImpact().subtract(position);
+        state.summonOrigin = state.laserOrigin;
+        state.summonGround = entity.getSummonPoint().subtract(position);
+    }
+
+    @Override
+    public void adjustModelBonesForRender(RenderPassInfo<FlyingSaucerRenderState> pass, BoneSnapshots bones) {
+        ((MechModel<FlyingSaucerBoss>)this.model).applyBoneTransforms(pass, bones);
+    }
+
+    @Override
+    public void submit(FlyingSaucerRenderState state, PoseStack pose, SubmitNodeCollector collector,
+                       CameraRenderState camera) {
+        super.submit(state, pose, collector, camera);
+        if (!state.dying && state.laserTick <= 0 && state.summonTick <= 0) {
             return;
         }
-        // 计算相对渲染原点的发射点与落点
-        Vec3 position = entity.getPosition(partialTick);
-        Vec3 origin = entity.getLaserOrigin(position).subtract(position);
-        Vec3 impact = entity.getLaserImpact().subtract(position);
-        renderGroundLaser(buffers.getBuffer(GLOW), poseStack.last().pose(), origin, impact, laserTick + partialTick);
+        collector.submitCustomGeometry(pose, RenderTypes.lightning(), (entry, vertices) -> {
+            Matrix4f matrix = new Matrix4f(entry.pose());
+            if (state.dying) {
+                this.renderDeathExplosion(vertices, matrix, state.deathTime);
+            }
+            if (state.summonTick > 0 && state.summonGround.y < state.summonOrigin.y) {
+                this.renderSummon(vertices, matrix, state.summonOrigin, state.summonGround,
+                    state.summonTick + state.partialTick, state.summonKind);
+            }
+            if (state.laserTick > 0) {
+                renderGroundLaser(vertices, matrix, state.laserOrigin, state.laserImpact,
+                    state.laserTick + state.partialTick);
+            }
+        });
     }
 
     static void renderGroundLaser(VertexConsumer vertices, Matrix4f matrix, Vec3 origin, Vec3 impact, float time) {
@@ -394,8 +405,7 @@ public final class FlyingSaucerRenderer extends GeoEntityRenderer<FlyingSaucerBo
         vertices.addVertex(matrix, (float)point.x, (float)point.y, (float)point.z).setColor(red, green, blue, alpha);
     }
 
-    private void renderDeathExplosion(VertexConsumer vertices, Matrix4f matrix, FlyingSaucerBoss entity, float partialTick) {
-        float time = entity.deathTime + partialTick;
+    private void renderDeathExplosion(VertexConsumer vertices, Matrix4f matrix, float time) {
         float progress = time / 100.0F;
         if (progress >= 1.0F) {
             return;

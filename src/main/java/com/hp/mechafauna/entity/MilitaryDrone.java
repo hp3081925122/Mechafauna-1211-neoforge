@@ -6,7 +6,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -18,6 +20,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.OwnableEntity;
+import net.minecraft.world.entity.EntityReference;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.control.FlyingMoveControl;
@@ -30,10 +33,10 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import software.bernie.geckolib.animation.AnimatableManager;
-import software.bernie.geckolib.animation.AnimationController;
-import software.bernie.geckolib.animation.PlayState;
-import software.bernie.geckolib.animation.RawAnimation;
+import com.geckolib.animatable.manager.AnimatableManager;
+import com.geckolib.animation.AnimationController;
+import com.geckolib.animation.object.PlayState;
+import com.geckolib.animation.RawAnimation;
 
 public final class MilitaryDrone extends MechanicalMob implements OwnableEntity {
     private static final String GUN = "gun";
@@ -41,7 +44,7 @@ public final class MilitaryDrone extends MechanicalMob implements OwnableEntity 
     private static final String ROTORS = "animation.mechanical_drone.rotors";
     private static final double GUARD_RANGE = 24.0;
     private static final double RECALL_RANGE = 32.0;
-    private static final EntityDataAccessor<Optional<UUID>> DATA_OWNER_UUID = SynchedEntityData.defineId(MilitaryDrone.class, EntityDataSerializers.OPTIONAL_UUID);
+    private static final EntityDataAccessor<Optional<EntityReference<LivingEntity>>> DATA_OWNER_UUID = SynchedEntityData.defineId(MilitaryDrone.class, EntityDataSerializers.OPTIONAL_LIVING_ENTITY_REFERENCE);
     private static final Vec3[] BARREL_OFFSETS = {
         new Vec3(-0.624, 1.08, 0.0),
         new Vec3(0.624, 1.08, 0.0),
@@ -74,13 +77,17 @@ public final class MilitaryDrone extends MechanicalMob implements OwnableEntity 
     }
 
     public void setOwner(Player owner) {
-        this.entityData.set(DATA_OWNER_UUID, Optional.of(owner.getUUID()));
+        this.entityData.set(DATA_OWNER_UUID, Optional.of(EntityReference.of(owner)));
         this.setPersistenceRequired();
         this.setTarget(null);
     }
 
-    @Override
     public UUID getOwnerUUID() {
+        return this.entityData.get(DATA_OWNER_UUID).map(EntityReference::getUUID).orElse(null);
+    }
+
+    @Override
+    public EntityReference<LivingEntity> getOwnerReference() {
         return this.entityData.get(DATA_OWNER_UUID).orElse(null);
     }
 
@@ -90,34 +97,34 @@ public final class MilitaryDrone extends MechanicalMob implements OwnableEntity 
     }
 
     @Override
-    public boolean isAlliedTo(Entity other) {
+    protected boolean considersEntityAsAlly(Entity other) {
         if (this.isOwnedBy(other) || samePlayerSummon(this, other)) {
             return true;
         }
         LivingEntity owner = this.getOwner();
-        return owner != null && owner.isAlliedTo(other) || super.isAlliedTo(other);
+        return owner != null && owner.isAlliedTo(other) || super.considersEntityAsAlly(other);
     }
 
     @Override
-    public void addAdditionalSaveData(CompoundTag tag) {
-        super.addAdditionalSaveData(tag);
+    protected void addAdditionalSaveData(ValueOutput output) {
+        super.addAdditionalSaveData(output);
         UUID owner = this.getOwnerUUID();
         if (owner != null) {
-            tag.putUUID("Owner", owner);
+            output.store("Owner", UUIDUtil.CODEC, owner);
         }
         if (this.supportTicks > 0) {
-            tag.putInt("SupportTicks", this.supportTicks);
+            output.putInt("SupportTicks", this.supportTicks);
         }
     }
 
     @Override
-    public void readAdditionalSaveData(CompoundTag tag) {
-        super.readAdditionalSaveData(tag);
-        if (tag.hasUUID("Owner")) {
-            this.entityData.set(DATA_OWNER_UUID, Optional.of(tag.getUUID("Owner")));
+    protected void readAdditionalSaveData(ValueInput input) {
+        super.readAdditionalSaveData(input);
+        input.read("Owner", UUIDUtil.CODEC).ifPresent(owner -> {
+            this.entityData.set(DATA_OWNER_UUID, Optional.of(EntityReference.of(owner)));
             this.setPersistenceRequired();
-        }
-        this.supportTicks = tag.contains("SupportTicks") ? tag.getInt("SupportTicks") : -1;
+        });
+        this.supportTicks = input.getIntOr("SupportTicks", -1);
     }
 
     @Override
@@ -160,10 +167,7 @@ public final class MilitaryDrone extends MechanicalMob implements OwnableEntity 
 
     @Override
     protected void addExtraControllers(AnimatableManager.ControllerRegistrar controllers) {
-        controllers.add(new AnimationController<>(this, "rotors", 0, state -> {
-            state.setAnimation(RawAnimation.begin().thenLoop(ROTORS));
-            return PlayState.CONTINUE;
-        }));
+        controllers.add(new AnimationController<>("rotors", 0, state -> state.setAndContinue(RawAnimation.begin().thenLoop(ROTORS))));
     }
 
     @Override
@@ -211,14 +215,14 @@ public final class MilitaryDrone extends MechanicalMob implements OwnableEntity 
     @Override
     public void tick() {
         super.tick();
-        if (!this.level().isClientSide && this.supportTicks > 0) {
+        if (!this.level().isClientSide() && this.supportTicks > 0) {
             this.supportTicks--;
             if (this.supportTicks == 0) {
                 this.discard();
                 return;
             }
         }
-        if (this.level().isClientSide || !(this.getOwner() instanceof Player owner) || !owner.isAlive()) {
+        if (this.level().isClientSide() || !(this.getOwner() instanceof Player owner) || !owner.isAlive()) {
             return;
         }
         if (this.distanceToSqr(owner) > RECALL_RANGE * RECALL_RANGE) {

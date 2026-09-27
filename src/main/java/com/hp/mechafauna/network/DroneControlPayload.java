@@ -4,7 +4,7 @@ import com.hp.mechafauna.Mechafauna;
 import com.hp.mechafauna.entity.MechanicalDrone;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
@@ -13,7 +13,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 public record DroneControlPayload(int entityId, boolean ascend, boolean descend, boolean firing) implements CustomPacketPayload {
-    public static final Type<DroneControlPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(Mechafauna.MOD_ID, "drone_control"));
+    public static final Type<DroneControlPayload> TYPE = new Type<>(Identifier.fromNamespaceAndPath(Mechafauna.MOD_ID, "drone_control"));
     public static final StreamCodec<RegistryFriendlyByteBuf, DroneControlPayload> STREAM_CODEC = StreamCodec.of(
         (buffer, payload) -> {
             buffer.writeVarInt(payload.entityId());
@@ -33,7 +33,7 @@ public record DroneControlPayload(int entityId, boolean ascend, boolean descend,
         if (!(context.player() instanceof ServerPlayer player)) {
             return;
         }
-        Entity entity = player.serverLevel().getEntity(payload.entityId());
+        Entity entity = ((net.minecraft.server.level.ServerLevel)player.level()).getEntity(payload.entityId());
         if (!(entity instanceof MechanicalDrone drone) || !drone.isOwnedBy(player)) {
             return;
         }

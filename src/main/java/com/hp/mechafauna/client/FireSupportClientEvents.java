@@ -5,11 +5,10 @@ import com.hp.mechafauna.network.FireSupportPayload;
 import net.minecraft.client.Minecraft;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 
-@EventBusSubscriber(modid = Mechafauna.MOD_ID, bus = EventBusSubscriber.Bus.GAME, value = Dist.CLIENT)
+@net.neoforged.fml.common.EventBusSubscriber(modid = Mechafauna.MOD_ID, value = Dist.CLIENT)
 public final class FireSupportClientEvents {
     private FireSupportClientEvents() {
     }
@@ -21,7 +20,7 @@ public final class FireSupportClientEvents {
             return;
         }
         while (ModKeyMappings.FIRE_SUPPORT.consumeClick()) {
-            PacketDistributor.sendToServer(new FireSupportPayload());
+            ClientPacketDistributor.sendToServer(new FireSupportPayload());
         }
     }
 }

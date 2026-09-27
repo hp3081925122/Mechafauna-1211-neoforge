@@ -1,0 +1,220 @@
+[
+  {
+    "item": "mechanical_scrap",
+    "reference_bounds": [
+      304,
+      194,
+      1059,
+      1023
+    ],
+    "sample_size": [
+      13,
+      14
+    ],
+    "feature_sample": null,
+    "occupied": 110,
+    "colors": 96
+  },
+  {
+    "item": "mechanical_wolf_summon",
+    "reference_bounds": [
+      141,
+      131,
+      1190,
+      1101
+    ],
+    "sample_size": [
+      14,
+      13
+    ],
+    "feature_sample": null,
+    "occupied": 120,
+    "colors": 105
+  },
+  {
+    "item": "weaponized_drone",
+    "reference_bounds": [
+      148,
+      191,
+      1389,
+      910
+    ],
+    "sample_size": [
+      15,
+      9
+    ],
+    "feature_sample": {
+      "feature": "青色镜头",
+      "source_pixel": [
+        364,
+        497
+      ],
+      "sample_pixel": [
+        4,
+        6
+      ]
+    },
+    "occupied": 66,
+    "colors": 50
+  },
+  {
+    "item": "mechanical_spider_throwable",
+    "reference_bounds": [
+      159,
+      252,
+      1128,
+      1015
+    ],
+    "sample_size": [
+      14,
+      11
+    ],
+    "feature_sample": null,
+    "occupied": 90,
+    "colors": 87
+  },
+  {
+    "item": "prism_core",
+    "reference_bounds": [
+      314,
+      262,
+      983,
+      1009
+    ],
+    "sample_size": [
+      13,
+      14
+    ],
+    "feature_sample": null,
+    "occupied": 136,
+    "colors": 132
+  },
+  {
+    "item": "mechanical_wolf_spawn_egg",
+    "reference_bounds": [
+      279,
+      204,
+      1017,
+      1046
+    ],
+    "sample_size": [
+      12,
+      14
+    ],
+    "feature_sample": null,
+    "occupied": 120,
+    "colors": 111
+  },
+  {
+    "item": "mechanical_tank_spawn_egg",
+    "reference_bounds": [
+      249,
+      165,
+      1043,
+      1097
+    ],
+    "sample_size": [
+      12,
+      14
+    ],
+    "feature_sample": null,
+    "occupied": 124,
+    "colors": 117
+  },
+  {
+    "item": "mechanical_drone_spawn_egg",
+    "reference_bounds": [
+      286,
+      236,
+      968,
+      1037
+    ],
+    "sample_size": [
+      12,
+      14
+    ],
+    "feature_sample": null,
+    "occupied": 123,
+    "colors": 115
+  },
+  {
+    "item": "mechanical_spider_spawn_egg",
+    "reference_bounds": [
+      125,
+      94,
+      1036,
+      1260
+    ],
+    "sample_size": [
+      11,
+      14
+    ],
+    "feature_sample": null,
+    "occupied": 116,
+    "colors": 103
+  },
+  {
+    "item": "heavy_mech_spawn_egg",
+    "reference_bounds": [
+      70,
+      76,
+      1091,
+      1298
+    ],
+    "sample_size": [
+      13,
+      15
+    ],
+    "feature_sample": null,
+    "occupied": 156,
+    "colors": 151
+  },
+  {
+    "item": "flame_crawler_spawn_egg",
+    "reference_bounds": [
+      55,
+      59,
+      1106,
+      1305
+    ],
+    "sample_size": [
+      12,
+      14
+    ],
+    "feature_sample": null,
+    "occupied": 120,
+    "colors": 113
+  },
+  {
+    "item": "prism_sentinel_spawn_egg",
+    "reference_bounds": [
+      147,
+      79,
+      1107,
+      1171
+    ],
+    "sample_size": [
+      12,
+      14
+    ],
+    "feature_sample": null,
+    "occupied": 122,
+    "colors": 105
+  },
+  {
+    "item": "flying_saucer_boss_spawn_egg",
+    "reference_bounds": [
+      78,
+      79,
+      1176,
+      1174
+    ],
+    "sample_size": [
+      14,
+      14
+    ],
+    "feature_sample": null,
+    "occupied": 120,
+    "colors": 109
+  }
+]

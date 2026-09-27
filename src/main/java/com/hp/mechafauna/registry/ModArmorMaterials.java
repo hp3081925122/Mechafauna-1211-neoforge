@@ -1,43 +1,34 @@
 package com.hp.mechafauna.registry;
 
 import com.hp.mechafauna.Mechafauna;
-import java.util.EnumMap;
-import java.util.List;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import java.util.Map;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvents;
-import net.minecraft.world.item.ArmorItem;
-import net.minecraft.world.item.ArmorMaterial;
-import net.minecraft.world.item.crafting.Ingredient;
-import net.neoforged.neoforge.registries.DeferredHolder;
-import net.neoforged.neoforge.registries.DeferredRegister;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.equipment.ArmorMaterial;
+import net.minecraft.world.item.equipment.ArmorType;
+import net.minecraft.world.item.equipment.EquipmentAssets;
 
 public final class ModArmorMaterials {
-    public static final DeferredRegister<ArmorMaterial> ARMOR_MATERIALS = DeferredRegister.create(
-        BuiltInRegistries.ARMOR_MATERIAL,
-        Mechafauna.MOD_ID
-    );
-
-    public static final DeferredHolder<ArmorMaterial, ArmorMaterial> MECH = ARMOR_MATERIALS.register("mech", () -> new ArmorMaterial(
-        defense(),
+    public static final ArmorMaterial MECH = new ArmorMaterial(
+        37,
+        Map.of(
+            ArmorType.HELMET, 3,
+            ArmorType.CHESTPLATE, 8,
+            ArmorType.LEGGINGS, 6,
+            ArmorType.BOOTS, 3,
+            ArmorType.BODY, 11
+        ),
         12,
         SoundEvents.ARMOR_EQUIP_NETHERITE,
-        () -> Ingredient.of(ModItems.MECHANICAL_SCRAP.get()),
-        List.of(new ArmorMaterial.Layer(ResourceLocation.fromNamespaceAndPath(Mechafauna.MOD_ID, "mech"))),
         2.0F,
-        0.15F
-    ));
+        0.15F,
+        TagKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath(Mechafauna.MOD_ID, "mech_armor_repair")),
+        EquipmentAssets.NETHERITE
+    );
 
     private ModArmorMaterials() {
-    }
-
-    private static EnumMap<ArmorItem.Type, Integer> defense() {
-        EnumMap<ArmorItem.Type, Integer> defense = new EnumMap<>(ArmorItem.Type.class);
-        defense.put(ArmorItem.Type.HELMET, 3);
-        defense.put(ArmorItem.Type.CHESTPLATE, 8);
-        defense.put(ArmorItem.Type.LEGGINGS, 6);
-        defense.put(ArmorItem.Type.BOOTS, 3);
-        defense.put(ArmorItem.Type.BODY, 11);
-        return defense;
     }
 }

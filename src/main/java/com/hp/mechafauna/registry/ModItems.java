@@ -11,12 +11,12 @@ import com.hp.mechafauna.item.ReinforcementCoreItem;
 import com.hp.mechafauna.item.WeaponizedDroneItem;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.item.ArmorItem;
+import net.minecraft.world.item.equipment.ArmorType;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.common.DeferredSpawnEggItem;
+import net.minecraft.world.item.SpawnEggItem;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -27,61 +27,61 @@ public final class ModItems {
     public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, Mechafauna.MOD_ID);
 
     public static final Supplier<? extends Item> MECHANICAL_SCRAP = ITEMS.registerSimpleItem("mechanical_scrap");
-    public static final Supplier<? extends Item> MECHANICAL_WOLF_SUMMON = ITEMS.register("mechanical_wolf_summon", MechanicalWolfSummonItem::new);
-    public static final Supplier<? extends Item> WEAPONIZED_DRONE = ITEMS.register("weaponized_drone", WeaponizedDroneItem::new);
-    public static final Supplier<? extends Item> MECHANICAL_SPIDER_THROWABLE = ITEMS.register("mechanical_spider_throwable", MechanicalSpiderThrowableItem::new);
-    public static final Supplier<? extends Item> PRISM_CORE = ITEMS.register("prism_core", PrismCoreItem::new);
-    public static final Supplier<? extends Item> HEAVY_MECH_MACHINE_GUN = ITEMS.register("heavy_mech_machine_gun", HeavyMechMachineGunItem::new);
-    public static final Supplier<ReinforcementCoreItem> REINFORCEMENT_CORE = ITEMS.register("reinforcement_core", ReinforcementCoreItem::new);
-    public static final Supplier<? extends Item> FLYING_SAUCER_LOCATOR = ITEMS.register("flying_saucer_locator", FlyingSaucerLocatorItem::new);
+    public static final Supplier<? extends Item> MECHANICAL_WOLF_SUMMON = ITEMS.registerItem("mechanical_wolf_summon", MechanicalWolfSummonItem::new);
+    public static final Supplier<? extends Item> WEAPONIZED_DRONE = ITEMS.registerItem("weaponized_drone", WeaponizedDroneItem::new);
+    public static final Supplier<? extends Item> MECHANICAL_SPIDER_THROWABLE = ITEMS.registerItem("mechanical_spider_throwable", MechanicalSpiderThrowableItem::new);
+    public static final Supplier<? extends Item> PRISM_CORE = ITEMS.registerItem("prism_core", PrismCoreItem::new);
+    public static final Supplier<? extends Item> HEAVY_MECH_MACHINE_GUN = ITEMS.registerItem("heavy_mech_machine_gun", HeavyMechMachineGunItem::new);
+    public static final Supplier<ReinforcementCoreItem> REINFORCEMENT_CORE = ITEMS.registerItem("reinforcement_core", ReinforcementCoreItem::new);
+    public static final Supplier<? extends Item> FLYING_SAUCER_LOCATOR = ITEMS.registerItem("flying_saucer_locator", FlyingSaucerLocatorItem::new);
 
-    public static final Supplier<? extends Item> MECHANICAL_WOLF_SPAWN_EGG = ITEMS.register(
+    public static final Supplier<? extends Item> MECHANICAL_WOLF_SPAWN_EGG = ITEMS.registerItem(
         "mechanical_wolf_spawn_egg",
-        () -> new DeferredSpawnEggItem(ModEntities.MECHANICAL_WOLF, 0xFFFFFF, 0xFFFFFF, new Item.Properties())
+        properties -> new SpawnEggItem(properties.spawnEgg(ModEntities.MECHANICAL_WOLF.get()))
     );
-    public static final Supplier<? extends Item> MECHANICAL_TANK_SPAWN_EGG = ITEMS.register(
+    public static final Supplier<? extends Item> MECHANICAL_TANK_SPAWN_EGG = ITEMS.registerItem(
         "mechanical_tank_spawn_egg",
-        () -> new DeferredSpawnEggItem(ModEntities.MECHANICAL_TANK, 0xFFFFFF, 0xFFFFFF, new Item.Properties())
+        properties -> new SpawnEggItem(properties.spawnEgg(ModEntities.MECHANICAL_TANK.get()))
     );
-    public static final Supplier<? extends Item> MECHANICAL_DRONE_SPAWN_EGG = ITEMS.register(
+    public static final Supplier<? extends Item> MECHANICAL_DRONE_SPAWN_EGG = ITEMS.registerItem(
         "mechanical_drone_spawn_egg",
-        () -> new DeferredSpawnEggItem(ModEntities.MECHANICAL_DRONE, 0xFFFFFF, 0xFFFFFF, new Item.Properties())
+        properties -> new SpawnEggItem(properties.spawnEgg(ModEntities.MECHANICAL_DRONE.get()))
     );
-    public static final Supplier<? extends Item> MECHANICAL_SPIDER_SPAWN_EGG = ITEMS.register(
+    public static final Supplier<? extends Item> MECHANICAL_SPIDER_SPAWN_EGG = ITEMS.registerItem(
         "mechanical_spider_spawn_egg",
-        () -> new DeferredSpawnEggItem(ModEntities.MECHANICAL_SPIDER, 0xFFFFFF, 0xFFFFFF, new Item.Properties())
+        properties -> new SpawnEggItem(properties.spawnEgg(ModEntities.MECHANICAL_SPIDER.get()))
     );
-    public static final Supplier<? extends Item> HEAVY_MECH_SPAWN_EGG = ITEMS.register(
+    public static final Supplier<? extends Item> HEAVY_MECH_SPAWN_EGG = ITEMS.registerItem(
         "heavy_mech_spawn_egg",
-        () -> new DeferredSpawnEggItem(ModEntities.HEAVY_MECH, 0xFFFFFF, 0xFFFFFF, new Item.Properties())
+        properties -> new SpawnEggItem(properties.spawnEgg(ModEntities.HEAVY_MECH.get()))
     );
-    public static final Supplier<? extends Item> FLAME_CRAWLER_SPAWN_EGG = ITEMS.register(
+    public static final Supplier<? extends Item> FLAME_CRAWLER_SPAWN_EGG = ITEMS.registerItem(
         "flame_crawler_spawn_egg",
-        () -> new DeferredSpawnEggItem(ModEntities.FLAME_CRAWLER, 0xFFFFFF, 0xFFFFFF, new Item.Properties())
+        properties -> new SpawnEggItem(properties.spawnEgg(ModEntities.FLAME_CRAWLER.get()))
     );
-    public static final Supplier<? extends Item> PRISM_SENTINEL_SPAWN_EGG = ITEMS.register(
+    public static final Supplier<? extends Item> PRISM_SENTINEL_SPAWN_EGG = ITEMS.registerItem(
         "prism_sentinel_spawn_egg",
-        () -> new DeferredSpawnEggItem(ModEntities.PRISM_SENTINEL, 0xFFFFFF, 0xFFFFFF, new Item.Properties())
+        properties -> new SpawnEggItem(properties.spawnEgg(ModEntities.PRISM_SENTINEL.get()))
     );
-    public static final Supplier<MechArmorItem> MECH_HELMET = ITEMS.register(
+    public static final Supplier<MechArmorItem> MECH_HELMET = ITEMS.registerItem(
         "mech_helmet",
-        () -> new MechArmorItem(ArmorItem.Type.HELMET)
+        properties -> new MechArmorItem(ArmorType.HELMET, properties)
     );
-    public static final Supplier<MechArmorItem> MECH_CHESTPLATE = ITEMS.register(
+    public static final Supplier<MechArmorItem> MECH_CHESTPLATE = ITEMS.registerItem(
         "mech_chestplate",
-        () -> new MechArmorItem(ArmorItem.Type.CHESTPLATE)
+        properties -> new MechArmorItem(ArmorType.CHESTPLATE, properties)
     );
-    public static final Supplier<MechArmorItem> MECH_LEGGINGS = ITEMS.register(
+    public static final Supplier<MechArmorItem> MECH_LEGGINGS = ITEMS.registerItem(
         "mech_leggings",
-        () -> new MechArmorItem(ArmorItem.Type.LEGGINGS)
+        properties -> new MechArmorItem(ArmorType.LEGGINGS, properties)
     );
-    public static final Supplier<MechArmorItem> MECH_BOOTS = ITEMS.register(
+    public static final Supplier<MechArmorItem> MECH_BOOTS = ITEMS.registerItem(
         "mech_boots",
-        () -> new MechArmorItem(ArmorItem.Type.BOOTS)
+        properties -> new MechArmorItem(ArmorType.BOOTS, properties)
     );
-    public static final Supplier<? extends Item> FLYING_SAUCER_BOSS_SPAWN_EGG = ITEMS.register(
+    public static final Supplier<? extends Item> FLYING_SAUCER_BOSS_SPAWN_EGG = ITEMS.registerItem(
         "flying_saucer_boss_spawn_egg",
-        () -> new DeferredSpawnEggItem(ModEntities.FLYING_SAUCER_BOSS, 0xFFFFFF, 0xFFFFFF, new Item.Properties())
+        properties -> new SpawnEggItem(properties.spawnEgg(ModEntities.FLYING_SAUCER_BOSS.get()))
     );
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> MECHAFAUNA_TAB = CREATIVE_MODE_TABS.register("main", () -> CreativeModeTab.builder()
         .title(Component.translatable("itemGroup.mechafauna.main"))

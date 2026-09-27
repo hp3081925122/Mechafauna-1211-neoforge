@@ -1,13 +1,16 @@
 package com.hp.mechafauna.entity;
 
 import java.util.UUID;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -63,12 +66,11 @@ public final class PrismBeam extends Entity {
     @Override
     public void tick() {
         super.tick();
-        if (!this.level().isClientSide && --this.life <= 0) {
+        if (!this.level().isClientSide() && --this.life <= 0) {
             this.discard();
         }
     }
 
-    @Override
     public AABB getBoundingBoxForCulling() {
         Vec3 end = this.position().add(Vec3.directionFromRotation(this.getBeamPitch(), this.getBeamYaw()).scale(this.getBeamLength()));
         return new AABB(this.position(), end).inflate(0.4);
@@ -80,10 +82,15 @@ public final class PrismBeam extends Entity {
     }
 
     @Override
-    protected void readAdditionalSaveData(CompoundTag tag) {
+    public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
+        return false;
     }
 
     @Override
-    protected void addAdditionalSaveData(CompoundTag tag) {
+    protected void readAdditionalSaveData(ValueInput input) {
+    }
+
+    @Override
+    protected void addAdditionalSaveData(ValueOutput output) {
     }
 }

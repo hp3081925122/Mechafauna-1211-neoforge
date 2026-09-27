@@ -6,16 +6,15 @@ import com.hp.mechafauna.entity.FlyingSaucerWeapon;
 import java.util.Locale;
 import java.util.UUID;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.CustomizeGuiOverlayEvent;
 
-@EventBusSubscriber(modid = Mechafauna.MOD_ID, bus = EventBusSubscriber.Bus.GAME, value = Dist.CLIENT)
+@net.neoforged.fml.common.EventBusSubscriber(modid = Mechafauna.MOD_ID, value = Dist.CLIENT)
 public final class SaucerBossBarEvents {
     private static final int BAR_WIDTH = 182;
     private static final int GAP = 4;
@@ -43,7 +42,7 @@ public final class SaucerBossBarEvents {
         if (saucer == null) {
             return;
         }
-        GuiGraphics graphics = event.getGuiGraphics();
+        GuiGraphicsExtractor graphics = event.getGuiGraphics();
         FlyingSaucerWeapon[] weapons = FlyingSaucerWeapon.values();
         int smallWidth = (BAR_WIDTH - GAP * (weapons.length - 1)) / weapons.length;
         int top = event.getY() + 7;
@@ -55,15 +54,15 @@ public final class SaucerBossBarEvents {
             boolean destroyed = saucer.isWeaponDestroyed(weapon.ordinal());
             // 武器名称，摧毁后变灰
             Component name = Component.translatable("entity.mechafauna.flying_saucer_boss.part." + weapon.name().toLowerCase(Locale.ROOT));
-            int nameColor = 0xFFFFFF;
+            int nameColor = 0xFFFFFFFF;
             if (destroyed) {
-                nameColor = 0x777777;
+                nameColor = 0xFF777777;
             }
-            graphics.pose().pushPose();
-            graphics.pose().translate(left + smallWidth / 2.0F, top, 0.0F);
-            graphics.pose().scale(0.5F, 0.5F, 1.0F);
-            graphics.drawString(minecraft.font, name, -minecraft.font.width(name) / 2, 0, nameColor);
-            graphics.pose().popPose();
+            graphics.pose().pushMatrix();
+            graphics.pose().translate(left + smallWidth / 2.0F, top);
+            graphics.pose().scale(0.5F, 0.5F);
+            graphics.text(minecraft.font, name, -minecraft.font.width(name) / 2, 0, nameColor);
+            graphics.pose().popMatrix();
             // 边框、底色和剩余血量
             int barTop = top + 6;
             graphics.fill(left - 1, barTop - 1, left + smallWidth + 1, barTop + SMALL_BAR_HEIGHT + 1, 0xFF000000);

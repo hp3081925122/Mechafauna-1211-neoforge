@@ -2,17 +2,16 @@ package com.hp.mechafauna.client;
 
 import com.hp.mechafauna.particle.ExplosionParticleOptions;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.ParticleProvider;
-import net.minecraft.client.particle.ParticleRenderType;
+import net.minecraft.client.particle.SingleQuadParticle;
 import net.minecraft.client.particle.SpriteSet;
-import net.minecraft.client.particle.TextureSheetParticle;
+import net.minecraft.util.RandomSource;
 
-public final class ScaledExplosionParticle extends TextureSheetParticle {
+public final class ScaledExplosionParticle extends SingleQuadParticle {
     private final SpriteSet sprites;
 
     private ScaledExplosionParticle(ClientLevel level, double x, double y, double z, float radius, SpriteSet sprites) {
-        super(level, x, y, z);
+        super(level, x, y, z, sprites.first());
         this.lifetime = 6 + this.random.nextInt(4);
         float brightness = this.random.nextFloat() * 0.6F + 0.4F;
         this.rCol = brightness;
@@ -24,7 +23,7 @@ public final class ScaledExplosionParticle extends TextureSheetParticle {
     }
 
     @Override
-    public int getLightColor(float partialTick) {
+    protected int getLightCoords(float partialTick) {
         return 15728880;
     }
 
@@ -41,8 +40,8 @@ public final class ScaledExplosionParticle extends TextureSheetParticle {
     }
 
     @Override
-    public ParticleRenderType getRenderType() {
-        return ParticleRenderType.PARTICLE_SHEET_LIT;
+    protected SingleQuadParticle.Layer getLayer() {
+        return SingleQuadParticle.Layer.TRANSLUCENT;
     }
 
     public static final class Provider implements ParticleProvider<ExplosionParticleOptions> {
@@ -53,8 +52,8 @@ public final class ScaledExplosionParticle extends TextureSheetParticle {
         }
 
         @Override
-        public Particle createParticle(ExplosionParticleOptions options, ClientLevel level, double x, double y, double z,
-                                       double xSpeed, double ySpeed, double zSpeed) {
+        public SingleQuadParticle createParticle(ExplosionParticleOptions options, ClientLevel level, double x, double y, double z,
+                                       double xSpeed, double ySpeed, double zSpeed, RandomSource random) {
             return new ScaledExplosionParticle(level, x, y, z, options.radius(), this.sprites);
         }
     }

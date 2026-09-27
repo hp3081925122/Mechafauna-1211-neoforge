@@ -3,6 +3,7 @@
   "minVersion": "0.8",
   "package": "com.hp.mechafauna.mixin.client",
   "compatibilityLevel": "JAVA_21",
+  "refmap": "mechafauna.refmap.json",
   "client": [
     "PlayerDronePoseMixin"
   ],

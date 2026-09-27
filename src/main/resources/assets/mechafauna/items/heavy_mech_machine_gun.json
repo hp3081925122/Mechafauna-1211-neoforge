@@ -1,0 +1,9 @@
+{
+  "model": {
+    "type": "minecraft:special",
+    "base": "mechafauna:item/heavy_mech_machine_gun",
+    "model": {
+      "type": "geckolib:geckolib"
+    }
+  }
+}

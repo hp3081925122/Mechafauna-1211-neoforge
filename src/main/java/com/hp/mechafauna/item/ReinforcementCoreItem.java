@@ -8,16 +8,15 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.AnvilUpdateEvent;
 
-@EventBusSubscriber(modid = Mechafauna.MOD_ID, bus = EventBusSubscriber.Bus.GAME)
+@net.neoforged.fml.common.EventBusSubscriber(modid = Mechafauna.MOD_ID)
 public final class ReinforcementCoreItem extends Item {
     private static final String ARMOR_COOLDOWN_TAG = "mechafauna_reinforced_armor_cooldown";
     private static final String BULLET_DAMAGE_TAG = "mechafauna_reinforced_bullet_damage";
 
-    public ReinforcementCoreItem() {
-        super(new Item.Properties().stacksTo(16));
+    public ReinforcementCoreItem(Item.Properties properties) {
+        super(properties.stacksTo(16));
     }
 
     public static boolean hasArmorCooldownUpgrade(ItemStack stack) {
@@ -29,7 +28,7 @@ public final class ReinforcementCoreItem extends Item {
     }
 
     private static boolean hasUpgrade(ItemStack stack, String key) {
-        return stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag().getBoolean(key);
+        return stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag().getBoolean(key).orElse(false);
     }
 
     private static void applyUpgrade(ItemStack stack, String key) {
@@ -56,7 +55,7 @@ public final class ReinforcementCoreItem extends Item {
         ItemStack output = base.copy();
         applyUpgrade(output, upgradeTag);
         event.setOutput(output);
-        event.setCost(5);
+        event.setXpCost(5);
         event.setMaterialCost(1);
     }
 

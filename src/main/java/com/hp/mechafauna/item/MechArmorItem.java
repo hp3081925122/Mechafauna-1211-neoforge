@@ -1,46 +1,40 @@
 package com.hp.mechafauna.item;
 
+import com.geckolib.animatable.GeoItem;
+import com.geckolib.animatable.client.GeoRenderProvider;
+import com.geckolib.animatable.instance.AnimatableInstanceCache;
+import com.geckolib.animatable.manager.AnimatableManager;
+import com.geckolib.renderer.GeoArmorRenderer;
+import com.geckolib.util.GeckoLibUtil;
 import com.hp.mechafauna.client.renderer.MechArmorRenderer;
 import com.hp.mechafauna.registry.ModArmorMaterials;
 import java.util.function.Consumer;
-import net.minecraft.client.model.HumanoidModel;
-import net.minecraft.world.entity.EquipmentSlot;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.item.ArmorItem;
-import java.util.List;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.renderer.entity.state.HumanoidRenderState;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Item.TooltipContext;
 import net.minecraft.world.item.TooltipFlag;
-import org.jetbrains.annotations.Nullable;
-import software.bernie.geckolib.animatable.GeoItem;
-import software.bernie.geckolib.animatable.client.GeoRenderProvider;
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.animation.AnimatableManager;
-import software.bernie.geckolib.util.GeckoLibUtil;
+import net.minecraft.world.item.component.TooltipDisplay;
+import net.minecraft.world.item.equipment.ArmorType;
 
-public final class MechArmorItem extends ArmorItem implements GeoItem {
-    private static final int DURABILITY_BASE = 37;
+public final class MechArmorItem extends Item implements GeoItem {
+    private final ArmorType armorType;
     private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
 
-    public MechArmorItem(ArmorItem.Type type) {
-        super(ModArmorMaterials.MECH, type, new Item.Properties().durability(type.getDurability(DURABILITY_BASE)));
+    public MechArmorItem(ArmorType armorType, Item.Properties properties) {
+        super(properties.humanoidArmor(ModArmorMaterials.MECH, armorType));
+        this.armorType = armorType;
     }
 
     @Override
     public void createGeoRenderer(Consumer<GeoRenderProvider> consumer) {
         consumer.accept(new GeoRenderProvider() {
-            private MechArmorRenderer renderer;
+            private GeoArmorRenderer<MechArmorItem, HumanoidRenderState> renderer;
 
             @Override
-            public <T extends LivingEntity> HumanoidModel<?> getGeoArmorRenderer(
-                @Nullable T livingEntity,
-                ItemStack itemStack,
-                @Nullable EquipmentSlot equipmentSlot,
-                @Nullable HumanoidModel<T> original
-            ) {
+            public GeoArmorRenderer<?, ?> getGeoArmorRenderer(ItemStack stack, EquipmentSlot slot) {
                 if (this.renderer == null) {
                     this.renderer = new MechArmorRenderer();
                 }
@@ -54,8 +48,9 @@ public final class MechArmorItem extends ArmorItem implements GeoItem {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
-        String key = switch (this.type) {
+    public void appendHoverText(ItemStack stack, TooltipContext context, TooltipDisplay display,
+                                Consumer<Component> tooltipAdder, TooltipFlag flag) {
+        String key = switch (this.armorType) {
             case HELMET -> "item.mechafauna.mech_helmet.tooltip";
             case CHESTPLATE -> "item.mechafauna.mech_chestplate.tooltip";
             case LEGGINGS -> "item.mechafauna.mech_leggings.tooltip";
@@ -63,10 +58,10 @@ public final class MechArmorItem extends ArmorItem implements GeoItem {
             default -> null;
         };
         if (key != null) {
-            tooltip.add(Component.translatable(key, Component.keybind("key.mechafauna.fire_support")).withStyle(ChatFormatting.GRAY));
+            tooltipAdder.accept(Component.translatable(key, Component.keybind("key.mechafauna.fire_support")).withStyle(ChatFormatting.GRAY));
         }
         if (ReinforcementCoreItem.hasArmorCooldownUpgrade(stack)) {
-            tooltip.add(Component.translatable("item.mechafauna.reinforcement_core.armor_upgrade").withStyle(ChatFormatting.GOLD));
+            tooltipAdder.accept(Component.translatable("item.mechafauna.reinforcement_core.armor_upgrade").withStyle(ChatFormatting.GOLD));
         }
     }
 

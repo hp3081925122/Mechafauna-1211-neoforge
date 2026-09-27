@@ -1,0 +1,20 @@
+{
+  "elements": 60,
+  "parts": 5,
+  "texture_size": [
+    256,
+    256
+  ],
+  "java_block_version": "1.9.0",
+  "java_textures": {
+    "0": "mechafauna:item/heavy_mech_machine_gun_beltfed"
+  },
+  "orbit_frames": 49,
+  "pitch_range": [
+    -14,
+    30
+  ],
+  "errors": [],
+  "game_runtime_tested": false,
+  "held_animation_integrated": false
+}

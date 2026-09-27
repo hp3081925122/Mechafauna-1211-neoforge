@@ -1,14 +1,15 @@
 package com.hp.mechafauna.gametest;
 
 import com.hp.mechafauna.Mechafauna;
+import com.hp.mechafauna.entity.MechanicalTank;
 import com.hp.mechafauna.registry.ModEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.SpawnData;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
@@ -16,49 +17,37 @@ import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.structures.JigsawStructure;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.gametest.GameTestHolder;
-import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
+import net.neoforged.neoforge.event.RegisterGameTestsEvent;
 
-@GameTestHolder(Mechafauna.MOD_ID)
-@PrefixGameTestTemplate(false)
 public final class TankOutpostGameTests {
-    private static final ResourceLocation STRUCTURE = ResourceLocation.fromNamespaceAndPath(Mechafauna.MOD_ID, "tank_outpost");
+    private static final Identifier STRUCTURE = Identifier.fromNamespaceAndPath(Mechafauna.MOD_ID, "tank_outpost");
 
     private TankOutpostGameTests() {
     }
 
-    @GameTest(template = "tank_outpost", setupTicks = 5, timeoutTicks = 160)
+    public static void register(RegisterGameTestsEvent event) {
+        GameTestRegistration.register(event, "outpost_north", "tank_outpost", 160, 5, Rotation.NONE, TankOutpostGameTests::verifyOutpost);
+        GameTestRegistration.register(event, "outpost_east", "tank_outpost", 160, 5, Rotation.CLOCKWISE_90, TankOutpostGameTests::verifyOutpost);
+        GameTestRegistration.register(event, "outpost_south", "tank_outpost", 160, 5, Rotation.CLOCKWISE_180, TankOutpostGameTests::verifyOutpost);
+        GameTestRegistration.register(event, "outpost_west", "tank_outpost", 160, 5, Rotation.COUNTERCLOCKWISE_90, TankOutpostGameTests::verifyOutpost);
+    }
+
     public static void outpostNorth(GameTestHelper helper) {
-        verifyOutpost(helper);
-    }
-
-    @GameTest(template = "tank_outpost", rotationSteps = 1, setupTicks = 5, timeoutTicks = 160)
-    public static void outpostEast(GameTestHelper helper) {
-        verifyOutpost(helper);
-    }
-
-    @GameTest(template = "tank_outpost", rotationSteps = 2, setupTicks = 5, timeoutTicks = 160)
-    public static void outpostSouth(GameTestHelper helper) {
-        verifyOutpost(helper);
-    }
-
-    @GameTest(template = "tank_outpost", rotationSteps = 3, setupTicks = 5, timeoutTicks = 160)
-    public static void outpostWest(GameTestHelper helper) {
         verifyOutpost(helper);
     }
 
     private static void verifyOutpost(GameTestHelper helper) {
         var level = helper.getLevel();
-        var structure = level.registryAccess().registryOrThrow(Registries.STRUCTURE).get(STRUCTURE);
+        var structure = level.registryAccess().lookupOrThrow(Registries.STRUCTURE).getValue(STRUCTURE);
         helper.assertTrue(structure instanceof JigsawStructure, "Tank outpost worldgen structure is missing");
-        helper.assertTrue(level.registryAccess().registryOrThrow(Registries.TEMPLATE_POOL).get(STRUCTURE) != null,
+        helper.assertTrue(level.registryAccess().lookupOrThrow(Registries.TEMPLATE_POOL).getValue(STRUCTURE) != null,
             "Tank outpost template pool is missing");
-        helper.assertTrue(level.registryAccess().registryOrThrow(Registries.STRUCTURE_SET).get(STRUCTURE) != null,
+        helper.assertTrue(level.registryAccess().lookupOrThrow(Registries.STRUCTURE_SET).getValue(STRUCTURE) != null,
             "Tank outpost structure set is missing");
         var generator = level.getChunkSource().getGenerator();
         var context = new Structure.GenerationContext(level.registryAccess(), generator, generator.getBiomeSource(),
             level.getChunkSource().randomState(), level.getStructureManager(), level.getSeed(),
-            new ChunkPos(helper.absolutePos(BlockPos.ZERO)), level, biome -> structure.biomes().contains(biome));
+            ChunkPos.containing(helper.absolutePos(BlockPos.ZERO)), level, biome -> structure.biomes().contains(biome));
         var start = ((JigsawStructure) structure).findGenerationPoint(context);
         helper.assertTrue(start.isPresent() && !start.orElseThrow().getPiecesBuilder().isEmpty(),
             "Tank outpost jigsaw generation produced no pieces");
@@ -68,8 +57,12 @@ public final class TankOutpostGameTests {
         var tank = tanks.getFirst();
         tank.setNoAi(true);
         helper.assertTrue(tank.isPersistenceRequired(), "The outpost tank must not naturally despawn");
-        helper.assertTrue(tank.getBbWidth() > 3.4F && tank.getBbHeight() > 2.7F,
-            "Tank scale was lost during template loading: width=" + tank.getBbWidth()
+        var baseDimensions = tank.getType().getDimensions();
+        helper.assertTrue(Math.abs(tank.getScale() - MechanicalTank.MODEL_SCALE) < 0.001F,
+            "Tank scale attribute was lost during template loading: scale=" + tank.getScale());
+        helper.assertTrue(Math.abs(tank.getBbWidth() - baseDimensions.width() * tank.getScale()) < 0.001F
+                && Math.abs(tank.getBbHeight() - baseDimensions.height() * tank.getScale()) < 0.001F,
+            "Tank collision dimensions do not match the visual scale: width=" + tank.getBbWidth()
                 + ", height=" + tank.getBbHeight() + ", scale=" + tank.getScale());
         helper.assertTrue(level.noCollision(tank, tank.getBoundingBox()), "Tank spawn intersects the building");
         var wolves = helper.getEntities(ModEntities.MECHANICAL_WOLF.get());
@@ -84,16 +77,16 @@ public final class TankOutpostGameTests {
         float yaw = tank.getYRot();
         for (int z = 9; z <= 54; z += 3) {
             var point = helper.absoluteVec(new Vec3(28.5, 0.0, z + 0.5));
-            tank.moveTo(point.x, origin.y, point.z, yaw, 0.0F);
+            tank.snapTo(point.x, origin.y, point.z, yaw, 0.0F);
             helper.assertTrue(level.noCollision(tank, tank.getBoundingBox()), "Tank cannot clear the garage-to-gate lane at z=" + z);
         }
         for (int step = 0; step < 16; step++) {
             double angle = step * Math.PI / 8.0;
             var point = helper.absoluteVec(new Vec3(28.5 + 8.0 * Math.cos(angle), 0.0, 29.5 + 8.0 * Math.sin(angle)));
-            tank.moveTo(point.x, origin.y, point.z, yaw, 0.0F);
+            tank.snapTo(point.x, origin.y, point.z, yaw, 0.0F);
             helper.assertTrue(level.noCollision(tank, tank.getBoundingBox()), "Tank cannot clear its eight-block combat ring at step=" + step);
         }
-        tank.moveTo(origin.x, origin.y, origin.z, yaw, 0.0F);
+        tank.snapTo(origin.x, origin.y, origin.z, yaw, 0.0F);
 
         int chests = 0;
         int armories = 0;
@@ -106,8 +99,8 @@ public final class TankOutpostGameTests {
                 helper.assertTrue(level.getBlockEntity(pos) instanceof ChestBlockEntity, "Outpost loot chest block entity is missing");
                 var chest = (ChestBlockEntity) level.getBlockEntity(pos);
                 helper.assertTrue(chest.getLootTable() != null, "Outpost chest lost its loot table");
-                var loot = chest.getLootTable().location();
-                if (loot.equals(ResourceLocation.fromNamespaceAndPath(Mechafauna.MOD_ID, "chests/fortress_armory"))) {
+                var loot = chest.getLootTable().identifier();
+                if (loot.equals(Identifier.fromNamespaceAndPath(Mechafauna.MOD_ID, "chests/fortress_armory"))) {
                     armories++;
                 }
                 helper.assertTrue(!chest.isEmpty(), "Outpost loot table generated an empty chest");
@@ -117,11 +110,11 @@ public final class TankOutpostGameTests {
                 helper.assertTrue(level.getBlockEntity(pos) instanceof SpawnerBlockEntity, "Outpost spawner block entity is missing");
                 var spawner = (SpawnerBlockEntity) level.getBlockEntity(pos);
                 var nbt = spawner.saveWithoutMetadata(level.registryAccess());
-                var data = SpawnData.CODEC.parse(NbtOps.INSTANCE, nbt.getCompound("SpawnData")).getOrThrow();
-                helper.assertTrue(data.getEntityToSpawn().getString("id").equals("mechafauna:mechanical_wolf"), "Outpost spawner contains an unexpected entity");
+                var data = SpawnData.CODEC.parse(NbtOps.INSTANCE, nbt.getCompound("SpawnData").orElseGet(net.minecraft.nbt.CompoundTag::new)).getOrThrow();
+                helper.assertTrue(data.getEntityToSpawn().getString("id").orElse("").equals("mechafauna:mechanical_wolf"), "Outpost spawner contains an unexpected entity");
                 helper.assertTrue(data.getCustomSpawnRules().isPresent()
                     && data.getCustomSpawnRules().orElseThrow().isValidPosition(pos, level), "Outpost spawner rejects workshop lighting");
-                helper.assertTrue(nbt.getShort("SpawnCount") == 1 && nbt.getShort("MaxNearbyEntities") == 2,
+                helper.assertTrue(nbt.getShort("SpawnCount").orElse((short)0) == 1 && nbt.getShort("MaxNearbyEntities").orElse((short)0) == 2,
                     "Outpost spawner population limits are incorrect");
             }
         }
@@ -129,7 +122,7 @@ public final class TankOutpostGameTests {
         helper.assertTrue(spawners == 1, "Outpost must contain one reinforcement spawner");
         helper.assertBlockPresent(Blocks.AIR, new BlockPos(28, 5, 53));
         helper.assertBlockPresent(Blocks.AIR, new BlockPos(28, 13, 10));
-        helper.assertBlockPresent(Blocks.STONE_BRICK_STAIRS, new BlockPos(9, 5, 12));
+        helper.assertBlockPresent(Blocks.STONE_BRICK_STAIRS, new BlockPos(9, 4, 12));
         helper.succeed();
     }
 }

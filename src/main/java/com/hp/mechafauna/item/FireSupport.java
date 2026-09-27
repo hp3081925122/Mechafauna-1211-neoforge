@@ -9,8 +9,8 @@ import com.hp.mechafauna.registry.ModItems;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.Mob;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 
@@ -28,16 +28,16 @@ public final class FireSupport {
         ItemStack legs = player.getItemBySlot(EquipmentSlot.LEGS);
         ItemStack boots = player.getItemBySlot(EquipmentSlot.FEET);
         if (helmet.is(ModItems.MECH_HELMET.get())) {
-            tryActivate(player, ModItems.MECH_HELMET.get(), cooldown(helmet, COOLDOWN_TICKS), () -> summonDrone(player));
+            tryActivate(player, helmet, cooldown(helmet, COOLDOWN_TICKS), () -> summonDrone(player));
         }
         if (chest.is(ModItems.MECH_CHESTPLATE.get())) {
-            tryActivate(player, ModItems.MECH_CHESTPLATE.get(), cooldown(chest, CHEST_COOLDOWN_TICKS), () -> summonLaser(player));
+            tryActivate(player, chest, cooldown(chest, CHEST_COOLDOWN_TICKS), () -> summonLaser(player));
         }
         if (legs.is(ModItems.MECH_LEGGINGS.get())) {
-            tryActivate(player, ModItems.MECH_LEGGINGS.get(), cooldown(legs, COOLDOWN_TICKS), () -> summonSpiders(player));
+            tryActivate(player, legs, cooldown(legs, COOLDOWN_TICKS), () -> summonSpiders(player));
         }
         if (boots.is(ModItems.MECH_BOOTS.get())) {
-            tryActivate(player, ModItems.MECH_BOOTS.get(), cooldown(boots, COOLDOWN_TICKS), () -> summonPrisms(player));
+            tryActivate(player, boots, cooldown(boots, COOLDOWN_TICKS), () -> summonPrisms(player));
         }
     }
 
@@ -45,31 +45,32 @@ public final class FireSupport {
         return ReinforcementCoreItem.hasArmorCooldownUpgrade(armorStack) ? baseCooldown / 2 : baseCooldown;
     }
 
-    private static void tryActivate(ServerPlayer player, Item item, int cooldown, java.util.function.BooleanSupplier action) {
-        if (player.getCooldowns().isOnCooldown(item)) {
+    private static void tryActivate(ServerPlayer player, ItemStack stack, int cooldown, java.util.function.BooleanSupplier action) {
+        if (player.getCooldowns().isOnCooldown(stack)) {
             return;
         }
         if (action.getAsBoolean()) {
-            player.getCooldowns().addCooldown(item, cooldown);
+            player.getCooldowns().addCooldown(stack, cooldown);
         }
     }
 
     private static boolean summonDrone(ServerPlayer player) {
-        ServerLevel level = player.serverLevel();
-        MilitaryDrone drone = ModEntities.MILITARY_DRONE.get().create(level);
+        ServerLevel level = (ServerLevel)player.level();
+        MilitaryDrone drone = ModEntities.MILITARY_DRONE.get().create(level, EntitySpawnReason.SPAWN_ITEM_USE);
         if (drone == null) {
             return false;
         }
         Vec3 look = player.getLookAngle();
         drone.setOwner(player);
         drone.limitLife(DURATION_TICKS);
-        drone.moveTo(player.getX() + look.x * 2.5, player.getY() + 1.2, player.getZ() + look.z * 2.5, player.getYRot(), 0.0F);
+        drone.setPos(player.getX() + look.x * 2.5, player.getY() + 1.2, player.getZ() + look.z * 2.5);
+        drone.setYRot(player.getYRot());
         return level.addFreshEntity(drone);
     }
 
     private static boolean summonLaser(ServerPlayer player) {
-        ServerLevel level = player.serverLevel();
-        SaucerLaserStrike strike = ModEntities.SAUCER_LASER_STRIKE.get().create(level);
+        ServerLevel level = (ServerLevel)player.level();
+        SaucerLaserStrike strike = ModEntities.SAUCER_LASER_STRIKE.get().create(level, EntitySpawnReason.SPAWN_ITEM_USE);
         if (strike == null) {
             return false;
         }
@@ -78,14 +79,14 @@ public final class FireSupport {
     }
 
     private static boolean summonSpiders(ServerPlayer player) {
-        return summonPair(player, ModEntities.MECHANICAL_SPIDER.get().create(player.serverLevel()), 0.0, (spider, sign) -> {
+        return FireSupport.<MechanicalSpider>summonPair(player, ModEntities.MECHANICAL_SPIDER.get().create((ServerLevel)player.level(), EntitySpawnReason.SPAWN_ITEM_USE), 0.0, (spider, sign) -> {
             spider.setSummonerUUID(player.getUUID());
             spider.limitLife(DURATION_TICKS);
         });
     }
 
     private static boolean summonPrisms(ServerPlayer player) {
-        return summonPair(player, ModEntities.PRISM_SENTINEL.get().create(player.serverLevel()), 1.6, (prism, sign) -> {
+        return FireSupport.<PrismSentinel>summonPair(player, ModEntities.PRISM_SENTINEL.get().create((ServerLevel)player.level(), EntitySpawnReason.SPAWN_ITEM_USE), 1.6, (prism, sign) -> {
             prism.assignSupport(player, DURATION_TICKS);
         });
     }
@@ -103,15 +104,16 @@ public final class FireSupport {
             }
             double sign = index == 0 ? 1.0 : -1.0;
             setup.prepare(mob, sign);
-            mob.moveTo(player.getX() + side.x * 1.6 * sign, player.getY() + height, player.getZ() + side.z * 1.6 * sign, player.getYRot(), 0.0F);
-            spawned |= player.serverLevel().addFreshEntity(mob);
+            mob.setPos(player.getX() + side.x * 1.6 * sign, player.getY() + height, player.getZ() + side.z * 1.6 * sign);
+            mob.setYRot(player.getYRot());
+            spawned |= ((ServerLevel)player.level()).addFreshEntity(mob);
         }
         return spawned;
     }
 
     @SuppressWarnings("unchecked")
     private static <T extends Mob> T copyType(ServerPlayer player, T sample) {
-        return (T)sample.getType().create(player.serverLevel());
+        return (T)sample.getType().create((ServerLevel)player.level(), EntitySpawnReason.SPAWN_ITEM_USE);
     }
 
     private static Vec3 sideOf(ServerPlayer player) {

@@ -1,123 +1,104 @@
 package com.hp.mechafauna.client;
 
+import com.geckolib.model.GeoModel;
+import com.geckolib.renderer.base.BoneSnapshots;
+import com.geckolib.renderer.base.GeoRenderState;
+import com.geckolib.renderer.base.RenderPassInfo;
 import com.hp.mechafauna.Mechafauna;
 import com.hp.mechafauna.entity.AnimatedHostileMob;
-import com.hp.mechafauna.entity.HeavyMech;
-import com.hp.mechafauna.entity.FlameCrawler;
 import com.hp.mechafauna.entity.FlyingSaucerBoss;
 import com.hp.mechafauna.entity.FlyingSaucerWeapon;
 import com.hp.mechafauna.entity.MechanicalDrone;
-import com.hp.mechafauna.entity.MilitaryDrone;
 import com.hp.mechafauna.entity.MechanicalSpider;
 import com.hp.mechafauna.entity.MechanicalTank;
+import com.hp.mechafauna.entity.MilitaryDrone;
 import com.hp.mechafauna.entity.PrismSentinel;
 import com.hp.mechafauna.entity.WeaponMount;
-import net.minecraft.resources.ResourceLocation;
+import com.hp.mechafauna.entity.WeaponPose;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4d;
-import software.bernie.geckolib.cache.object.GeoBone;
-import software.bernie.geckolib.animatable.GeoAnimatable;
-import software.bernie.geckolib.animation.AnimationState;
-import software.bernie.geckolib.model.GeoModel;
 
-public final class MechModel<T extends AnimatedHostileMob & GeoAnimatable> extends GeoModel<T> {
-    private final ResourceLocation model;
-    private final ResourceLocation texture;
-    private final ResourceLocation animation;
+public final class MechModel<T extends AnimatedHostileMob> extends GeoModel<T> {
+    private final Identifier model;
+    private final Identifier texture;
+    private final Identifier animation;
+    private final String modelName;
 
     public MechModel(String modelName) {
-        this.model = ResourceLocation.fromNamespaceAndPath(Mechafauna.MOD_ID, "geo/" + modelName + ".geo.json");
-        this.texture = ResourceLocation.fromNamespaceAndPath(Mechafauna.MOD_ID, "textures/entity/" + modelName + ".png");
-        this.animation = ResourceLocation.fromNamespaceAndPath(Mechafauna.MOD_ID, "animations/" + modelName + ".animation.json");
+        this.modelName = modelName;
+        this.model = Identifier.fromNamespaceAndPath(Mechafauna.MOD_ID, modelName);
+        this.texture = Identifier.fromNamespaceAndPath(Mechafauna.MOD_ID, "textures/entity/" + modelName + ".png");
+        this.animation = Identifier.fromNamespaceAndPath(Mechafauna.MOD_ID, modelName);
     }
 
     @Override
-    public ResourceLocation getModelResource(T entity) {
+    public Identifier getModelResource(GeoRenderState state) {
         return this.model;
     }
 
     @Override
-    public ResourceLocation getTextureResource(T entity) {
-        if (entity instanceof MechanicalSpider spider && spider.isDeadOrDying()) {
-            return ResourceLocation.fromNamespaceAndPath(Mechafauna.MOD_ID, "textures/entity/mechanical_spider_overload.png");
+    public Identifier getTextureResource(GeoRenderState state) {
+        if (state instanceof MechLivingRenderState livingState
+            && livingState.entity instanceof MechanicalSpider spider && spider.isDeadOrDying()) {
+            return Identifier.fromNamespaceAndPath(Mechafauna.MOD_ID, "textures/entity/mechanical_spider_overload.png");
         }
         return this.texture;
     }
 
     @Override
-    public ResourceLocation getAnimationResource(T entity) {
+    public Identifier getAnimationResource(T entity) {
         return this.animation;
     }
 
-    @Override
-    public void setCustomAnimations(T entity, long instanceId, AnimationState<T> animationState) {
-        super.setCustomAnimations(entity, instanceId, animationState);
-        float partialTick = animationState.getPartialTick();
+    public void applyBoneTransforms(RenderPassInfo<? extends MechLivingRenderState> pass, BoneSnapshots bones) {
+        if (!(pass.renderState().entity instanceof AnimatedHostileMob entity)) {
+            return;
+        }
+        float partialTick = pass.renderState().getPartialTick();
         if (entity instanceof FlyingSaucerBoss saucer) {
-            this.getBone("core_rings").ifPresent(bone -> {
-                bone.updateRotation(0.0F, (saucer.tickCount + partialTick) * 0.025F, 0.0F);
-                bone.resetStateChanges();
-            });
+            bones.ifPresent("core_rings", bone -> bone.setRotY(bone.getRotY() + (saucer.tickCount + partialTick) * 0.025F));
             for (FlyingSaucerWeapon weapon : FlyingSaucerWeapon.values()) {
                 boolean destroyed = saucer.isWeaponDestroyed(weapon.ordinal());
-                this.getBone(weapon.yawBone()).ifPresent(bone -> {
-                    bone.setHidden(destroyed);
-                    bone.setChildrenHidden(destroyed);
-                    bone.updateRotation(0.0F, (float)Math.toRadians(saucer.getWeaponYawDegrees(weapon)), 0.0F);
-                    bone.resetStateChanges();
+                bones.ifPresent(weapon.yawBone(), bone -> {
+                    bone.skipRender(destroyed);
+                    bone.skipChildrenRender(destroyed);
                 });
-                this.getBone(weapon.pitchBone()).ifPresent(bone -> {
-                    bone.updateRotation(0.0F, 0.0F, (float)Math.toRadians(saucer.getWeaponPitchDegrees(weapon)));
-                    bone.resetStateChanges();
-                });
+                WeaponMount mount = weapon.mount();
+                WeaponMount.Aim aim = this.aimWeapon(entity, mount, partialTick, bones);
+                if (aim != null) {
+                    bones.ifPresent(weapon.yawBone(), bone -> bone.setRotY(aim.yaw()));
+                    bones.ifPresent(weapon.pitchBone(), bone -> bone.setRotZ(aim.pitch()));
+                }
                 if (weapon.barrelBone() != null) {
-                    this.getBone(weapon.barrelBone()).ifPresent(bone -> {
-                        bone.setRotX((saucer.tickCount + partialTick) * 0.48F);
-                        bone.resetStateChanges();
-                    });
+                    bones.ifPresent(weapon.barrelBone(), bone -> bone.setRotX((saucer.tickCount + partialTick) * 0.48F));
                 }
             }
         } else if (entity instanceof MechanicalTank) {
-            this.aimWeapon(entity, WeaponMount.TANK_CANNON, partialTick);
+            this.aimWeapon(entity, WeaponMount.TANK_CANNON, partialTick, bones);
         } else if (entity instanceof MilitaryDrone) {
-            this.aimWeapon(entity, WeaponMount.MILITARY_DRONE_GUN, partialTick);
-            this.getBone("gun_spin").ifPresent(bone -> {
-                bone.setRotZ(bone.getInitialSnapshot().getRotZ() + (entity.tickCount + partialTick) * 0.45F);
-                bone.resetStateChanges();
-            });
+            this.aimWeapon(entity, WeaponMount.MILITARY_DRONE_GUN, partialTick, bones);
+            bones.ifPresent("gun_spin", bone -> bone.setRotZ(bone.getRotZ() + (entity.tickCount + partialTick) * 0.45F));
         } else if (entity instanceof MechanicalDrone) {
-            this.aimWeapon(entity, WeaponMount.DRONE_GUN, partialTick);
-        } else if (entity instanceof HeavyMech) {
-            this.aimWeapon(entity, WeaponMount.MECH_GUN, partialTick);
-            this.aimWeapon(entity, WeaponMount.MECH_MISSILES, partialTick);
-        } else if (entity instanceof FlameCrawler) {
-            this.aimWeapon(entity, WeaponMount.FLAME_CRAWLER, partialTick);
+            this.aimWeapon(entity, WeaponMount.DRONE_GUN, partialTick, bones);
+        } else if (entity instanceof com.hp.mechafauna.entity.HeavyMech) {
+            this.aimWeapon(entity, WeaponMount.MECH_GUN, partialTick, bones);
+            this.aimWeapon(entity, WeaponMount.MECH_MISSILES, partialTick, bones);
+        } else if (entity instanceof com.hp.mechafauna.entity.FlameCrawler) {
+            this.aimWeapon(entity, WeaponMount.FLAME_CRAWLER, partialTick, bones);
         } else if (entity instanceof PrismSentinel prism && prism.isPerformingAction()) {
-            this.getBone("body").ifPresent(body -> {
-                body.updateRotation(body.getRotX() + prism.getBodyTiltRadians(partialTick), body.getRotY(), body.getRotZ());
-                body.resetStateChanges();
-            });
+            bones.ifPresent("body", bone -> bone.setRotX(bone.getRotX() + prism.getBodyTiltRadians(partialTick)));
             WeaponMount.Aim aim = prism.getLaserAim(partialTick);
-            this.getBone("lens_yaw").ifPresent(bone -> {
-                bone.updateRotation(0.0F, aim.yaw(), 0.0F);
-                bone.resetStateChanges();
-            });
-            this.getBone("lens_pitch").ifPresent(bone -> {
-                bone.updateRotation(aim.pitch(), 0.0F, 0.0F);
-                bone.resetStateChanges();
-            });
+            bones.ifPresent("lens_yaw", bone -> bone.setRotY(aim.yaw()));
+            bones.ifPresent("lens_pitch", bone -> bone.setRotX(aim.pitch()));
         }
     }
 
-    private void aimWeapon(T entity, WeaponMount mount, float partialTick) {
-        GeoBone yawBone = this.getBone(mount.yawBone()).orElse(null);
-        GeoBone pitchBone = this.getBone(mount.pitchBone()).orElse(null);
-        if (yawBone == null || pitchBone == null) {
-            return;
-        }
+    private WeaponMount.Aim aimWeapon(AnimatedHostileMob entity, WeaponMount mount, float partialTick, BoneSnapshots bones) {
         Vec3 targetCenter = null;
         if (entity instanceof MechanicalDrone drone && drone.isOwnedDrone()
             && drone.getControllingPassenger() instanceof Player pilot) {
@@ -129,32 +110,21 @@ public final class MechModel<T extends AnimatedHostileMob & GeoAnimatable> exten
             }
         }
         if (targetCenter == null) {
-            if (!(entity instanceof MechanicalTank)) {
-                yawBone.setRotY(yawBone.getInitialSnapshot().getRotY());
-            }
-            pitchBone.setRotX(pitchBone.getInitialSnapshot().getRotX());
-        } else {
-            float bodyYaw = Mth.rotLerp(partialTick, entity.yBodyRotO, entity.yBodyRot);
-            Matrix4d parentToWorld = WeaponMount.modelToWorld(entity.getPosition(partialTick), bodyYaw, entity.getModelScale());
-            this.applyParentPose(parentToWorld, yawBone.getParent());
-            parentToWorld.translate(-yawBone.getPosX(), yawBone.getPosY(), yawBone.getPosZ());
-            WeaponMount.Aim aim = mount.aim(parentToWorld, targetCenter);
-            yawBone.updateRotation(0.0F, aim.yaw(), 0.0F);
-            pitchBone.updateRotation(aim.pitch(), 0.0F, 0.0F);
+            return null;
         }
-        yawBone.resetStateChanges();
-        pitchBone.resetStateChanges();
+        float bodyYaw = Mth.rotLerp(partialTick, entity.yBodyRotO, entity.yBodyRot);
+        Matrix4d parent = WeaponPose.forModel(this.modelName).parentTransform(mount,
+            WeaponMount.modelToWorld(entity.getPosition(partialTick), bodyYaw, entity.getModelScale()),
+            this.currentAnimation(entity), this.currentAnimationSeconds(entity, partialTick));
+        return mount.aim(parent, targetCenter);
     }
 
-    private void applyParentPose(Matrix4d matrix, GeoBone bone) {
-        if (bone == null) {
-            return;
-        }
-        this.applyParentPose(matrix, bone.getParent());
-        matrix.translate(-bone.getPosX(), bone.getPosY(), bone.getPosZ())
-            .translate(bone.getPivotX(), bone.getPivotY(), bone.getPivotZ())
-            .rotateZ(bone.getRotZ()).rotateY(bone.getRotY()).rotateX(bone.getRotX())
-            .scale(bone.getScaleX(), bone.getScaleY(), bone.getScaleZ())
-            .translate(-bone.getPivotX(), -bone.getPivotY(), -bone.getPivotZ());
+    private String currentAnimation(AnimatedHostileMob entity) {
+        String action = entity.getActiveAction();
+        return action == null ? null : entity.getActionAnimation(action);
+    }
+
+    private double currentAnimationSeconds(AnimatedHostileMob entity, float partialTick) {
+        return entity.getActionAnimationSeconds(partialTick);
     }
 }

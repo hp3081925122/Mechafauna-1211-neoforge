@@ -7,7 +7,8 @@ import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -17,21 +18,25 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityReference;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
+import org.joml.Vector3fc;
 
 public final class SaucerLaserStrike extends Entity {
     public static final double BEAM_HEIGHT = 16.0;
     private static final int DURATION = FlyingSaucerBoss.LASER_CHARGE_TICKS + FlyingSaucerBoss.LASER_FIRE_TICKS + FlyingSaucerBoss.WAVE_LIFETIME;
-    private static final EntityDataAccessor<Vector3f> DATA_IMPACT = SynchedEntityData.defineId(SaucerLaserStrike.class, EntityDataSerializers.VECTOR3);
+    private static final EntityDataAccessor<Vector3fc> DATA_IMPACT = SynchedEntityData.defineId(SaucerLaserStrike.class, EntityDataSerializers.VECTOR3);
     private static final EntityDataAccessor<Integer> DATA_TICK = SynchedEntityData.defineId(SaucerLaserStrike.class, EntityDataSerializers.INT);
-    private static final EntityDataAccessor<Optional<UUID>> DATA_OWNER = SynchedEntityData.defineId(SaucerLaserStrike.class, EntityDataSerializers.OPTIONAL_UUID);
+    private static final EntityDataAccessor<Optional<EntityReference<LivingEntity>>> DATA_OWNER = SynchedEntityData.defineId(SaucerLaserStrike.class, EntityDataSerializers.OPTIONAL_LIVING_ENTITY_REFERENCE);
     private final Set<Long> waveHits = new HashSet<>();
 
     public SaucerLaserStrike(EntityType<? extends SaucerLaserStrike> entityType, Level level) {
@@ -42,12 +47,14 @@ public final class SaucerLaserStrike extends Entity {
 
     public void placeAt(Player player) {
         this.setOwner(player);
-        this.moveTo(player.getX(), player.getY(), player.getZ(), player.getYRot(), 0.0F);
+        this.setPos(player.getX(), player.getY(), player.getZ());
+        this.setYRot(player.getYRot());
+        this.setXRot(0.0F);
         this.refreshImpact();
     }
 
     public void setOwner(Player owner) {
-        this.entityData.set(DATA_OWNER, Optional.of(owner.getUUID()));
+        this.entityData.set(DATA_OWNER, Optional.of(EntityReference.of(owner)));
     }
 
     public Vec3 getBeamOrigin() {
@@ -63,8 +70,8 @@ public final class SaucerLaserStrike extends Entity {
     }
 
     public Vec3 getImpact() {
-        Vector3f impact = this.entityData.get(DATA_IMPACT);
-        return new Vec3(impact.x, impact.y, impact.z);
+        Vector3fc impact = this.entityData.get(DATA_IMPACT);
+        return new Vec3(impact.x(), impact.y(), impact.z());
     }
 
     public int getLaserTick() {
@@ -81,7 +88,7 @@ public final class SaucerLaserStrike extends Entity {
     @Override
     public void tick() {
         super.tick();
-        if (this.tickCount == 1 && !this.level().isClientSide) {
+        if (this.tickCount == 1 && !this.level().isClientSide()) {
             this.level().playSound(null, this.getX(), this.getY() + BEAM_HEIGHT, this.getZ(), SoundEvents.BEACON_ACTIVATE,
                 SoundSource.HOSTILE, 4.0F, 0.6F);
         }
@@ -89,7 +96,7 @@ public final class SaucerLaserStrike extends Entity {
             this.discard();
             return;
         }
-        if (this.level().isClientSide) {
+        if (this.level().isClientSide()) {
             return;
         }
         this.refreshImpact();
@@ -104,7 +111,7 @@ public final class SaucerLaserStrike extends Entity {
             AABB column = new AABB(origin.x - FlyingSaucerBoss.LASER_BEAM_RADIUS, impact.y - 0.5, origin.z - FlyingSaucerBoss.LASER_BEAM_RADIUS,
                 origin.x + FlyingSaucerBoss.LASER_BEAM_RADIUS, origin.y, origin.z + FlyingSaucerBoss.LASER_BEAM_RADIUS);
             for (LivingEntity victim : this.level().getEntitiesOfClass(LivingEntity.class, column, this::canDamage)) {
-                if (victim.hurt(this.damageSource(), FlyingSaucerBoss.LASER_BEAM_DAMAGE)) {
+                if (victim.hurtOrSimulate(this.damageSource(), FlyingSaucerBoss.LASER_BEAM_DAMAGE)) {
                     victim.igniteForSeconds(3.0F);
                 }
             }
@@ -137,7 +144,7 @@ public final class SaucerLaserStrike extends Entity {
                     || !this.waveHits.add(key)) {
                     continue;
                 }
-                if (victim.hurt(this.damageSource(), FlyingSaucerBoss.WAVE_DAMAGE)) {
+                if (victim.hurtOrSimulate(this.damageSource(), FlyingSaucerBoss.WAVE_DAMAGE)) {
                     victim.knockback(1.1, -dx, -dz);
                     victim.hurtMarked = true;
                 }
@@ -150,7 +157,8 @@ public final class SaucerLaserStrike extends Entity {
         if (!victim.isAlive() || victim instanceof Player) {
             return false;
         }
-        UUID owner = this.entityData.get(DATA_OWNER).orElse(null);
+        EntityReference<LivingEntity> ownerReference = this.entityData.get(DATA_OWNER).orElse(null);
+        UUID owner = ownerReference == null ? null : ownerReference.getUUID();
         if (owner == null) {
             return true;
         }
@@ -167,7 +175,8 @@ public final class SaucerLaserStrike extends Entity {
     }
 
     private DamageSource damageSource() {
-        UUID ownerId = this.entityData.get(DATA_OWNER).orElse(null);
+        EntityReference<LivingEntity> ownerReference = this.entityData.get(DATA_OWNER).orElse(null);
+        UUID ownerId = ownerReference == null ? null : ownerReference.getUUID();
         if (ownerId != null && this.level() instanceof ServerLevel serverLevel) {
             if (serverLevel.getEntity(ownerId) instanceof Player owner) {
                 return this.damageSources().playerAttack(owner);
@@ -176,21 +185,24 @@ public final class SaucerLaserStrike extends Entity {
         return this.damageSources().magic();
     }
 
-    @Override
     public boolean shouldRender(double x, double y, double z) {
         return this.distanceToSqr(x, y, z) < 96.0 * 96.0;
     }
 
     @Override
+    public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
+        return false;
+    }
+
     public AABB getBoundingBoxForCulling() {
         return this.getBoundingBox().inflate(FlyingSaucerBoss.WAVE_MAX_RADIUS, BEAM_HEIGHT, FlyingSaucerBoss.WAVE_MAX_RADIUS);
     }
 
     @Override
-    protected void readAdditionalSaveData(CompoundTag tag) {
+    protected void readAdditionalSaveData(ValueInput input) {
     }
 
     @Override
-    protected void addAdditionalSaveData(CompoundTag tag) {
+    protected void addAdditionalSaveData(ValueOutput output) {
     }
 }

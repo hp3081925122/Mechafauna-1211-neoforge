@@ -4,7 +4,9 @@ import com.mojang.logging.LogUtils;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Entity.RemovalReason;
@@ -57,8 +59,8 @@ public final class MechanicalSpider extends MechanicalMob {
         }
 
         @Override
-        public float getEntityDamageAmount(Explosion explosion, Entity entity) {
-            return super.getEntityDamageAmount(explosion, entity) * THROWN_EXPLOSION_DAMAGE_MULTIPLIER;
+        public float getEntityDamageAmount(Explosion explosion, Entity entity, float exposure) {
+            return super.getEntityDamageAmount(explosion, entity, exposure) * THROWN_EXPLOSION_DAMAGE_MULTIPLIER;
         }
     };
     private boolean overloadExplosionTriggered;
@@ -75,25 +77,23 @@ public final class MechanicalSpider extends MechanicalMob {
     }
 
     @Override
-    public void addAdditionalSaveData(CompoundTag tag) {
-        super.addAdditionalSaveData(tag);
-        tag.putBoolean("ThrownItemSpider", this.thrownItemSpider);
-        tag.putInt("ThrownItemTicks", this.thrownItemTicks);
-        if (this.summonerUUID != null) {
-            tag.putUUID("Summoner", this.summonerUUID);
-        }
+    protected void addAdditionalSaveData(ValueOutput output) {
+        super.addAdditionalSaveData(output);
+        output.putBoolean("ThrownItemSpider", this.thrownItemSpider);
+        output.putInt("ThrownItemTicks", this.thrownItemTicks);
+        output.storeNullable("Summoner", UUIDUtil.CODEC, this.summonerUUID);
         if (this.supportTicks > 0) {
-            tag.putInt("SupportTicks", this.supportTicks);
+            output.putInt("SupportTicks", this.supportTicks);
         }
     }
 
     @Override
-    public void readAdditionalSaveData(CompoundTag tag) {
-        super.readAdditionalSaveData(tag);
-        this.thrownItemSpider = tag.getBoolean("ThrownItemSpider");
-        this.thrownItemTicks = tag.getInt("ThrownItemTicks");
-        this.summonerUUID = tag.hasUUID("Summoner") ? tag.getUUID("Summoner") : null;
-        this.supportTicks = tag.contains("SupportTicks") ? tag.getInt("SupportTicks") : -1;
+    protected void readAdditionalSaveData(ValueInput input) {
+        super.readAdditionalSaveData(input);
+        this.thrownItemSpider = input.getBooleanOr("ThrownItemSpider", false);
+        this.thrownItemTicks = input.getIntOr("ThrownItemTicks", 0);
+        this.summonerUUID = input.read("Summoner", UUIDUtil.CODEC).orElse(null);
+        this.supportTicks = input.getIntOr("SupportTicks", -1);
     }
 
     public void launchFromItem(UUID summonerUUID, Vec3 velocity) {
@@ -108,7 +108,7 @@ public final class MechanicalSpider extends MechanicalMob {
     @Override
     public void travel(Vec3 input) {
         if (this.thrownItemSpider && !this.selfDestructing) {
-            if (!this.level().isClientSide && this.thrownItemTicks == 0) {
+            if (!this.level().isClientSide() && this.thrownItemTicks == 0) {
                 LOGGER.debug("Mechanical spider item flight started entity={} position={} velocity={} gravity={}", this.getId(), this.position(), this.getDeltaMovement(), this.getGravity());
             }
             this.move(MoverType.SELF, this.getDeltaMovement());
@@ -126,7 +126,7 @@ public final class MechanicalSpider extends MechanicalMob {
 
     @Override
     public void tick() {
-        if (!this.level().isClientSide && this.supportTicks > 0) {
+        if (!this.level().isClientSide() && this.supportTicks > 0) {
             this.supportTicks--;
             if (this.supportTicks == 0) {
                 this.discard();
@@ -137,7 +137,7 @@ public final class MechanicalSpider extends MechanicalMob {
         double previousY = this.getY();
         double previousZ = this.getZ();
         super.tick();
-        if (this.level().isClientSide || !this.thrownItemSpider || this.selfDestructing || this.isDeadOrDying()) {
+        if (this.level().isClientSide() || !this.thrownItemSpider || this.selfDestructing || this.isDeadOrDying()) {
             return;
         }
         this.thrownItemTicks++;
@@ -171,9 +171,9 @@ public final class MechanicalSpider extends MechanicalMob {
     }
 
     @Override
-    public boolean isAlliedTo(Entity other) {
+    protected boolean considersEntityAsAlly(Entity other) {
         return this.summonerUUID != null && (this.summonerUUID.equals(other.getUUID()) || samePlayerSummon(this, other))
-            || super.isAlliedTo(other);
+            || super.considersEntityAsAlly(other);
     }
 
     public boolean isSummonedBy(UUID summonerUUID) {
@@ -196,11 +196,11 @@ public final class MechanicalSpider extends MechanicalMob {
         }
         if (!this.selfDestructing && !this.isDeadOrDying()) {
             this.level().playSound(player, this.getX(), this.getY(), this.getZ(), SoundEvents.FLINTANDSTEEL_USE, this.getSoundSource(), 1.0F, this.random.nextFloat() * 0.4F + 0.8F);
-            if (!this.level().isClientSide && this.primeForDetonation(player)) {
-                item.hurtAndBreak(1, player, LivingEntity.getSlotForHand(hand));
+            if (!this.level().isClientSide() && this.primeForDetonation(player)) {
+                item.hurtAndBreak(1, player, hand.asEquipmentSlot());
             }
         }
-        return InteractionResult.sidedSuccess(this.level().isClientSide);
+        return this.level().isClientSide() ? InteractionResult.SUCCESS : InteractionResult.CONSUME;
     }
 
     public static AttributeSupplier.Builder createAttributes() {
@@ -273,7 +273,7 @@ public final class MechanicalSpider extends MechanicalMob {
     }
 
     public boolean primeForDetonation(LivingEntity target) {
-        if (this.level().isClientSide || this.selfDestructing || this.isDeadOrDying() || this.isRemoved()) {
+        if (this.level().isClientSide() || this.selfDestructing || this.isDeadOrDying() || this.isRemoved()) {
             return false;
         }
         this.selfDestructing = true;
@@ -309,7 +309,7 @@ public final class MechanicalSpider extends MechanicalMob {
     @Override
     protected void tickDeath() {
         this.deathTime++;
-        if (!this.level().isClientSide && this.selfDestructing && this.overloadTarget != null && this.overloadTarget.isAlive()) {
+        if (!this.level().isClientSide() && this.selfDestructing && this.overloadTarget != null && this.overloadTarget.isAlive()) {
             Vec3 direction = this.overloadTarget.position().subtract(this.position()).multiply(1.0, 0.0, 1.0);
             if (direction.lengthSqr() > 1.0E-6) {
                 direction = direction.normalize();
@@ -320,11 +320,11 @@ public final class MechanicalSpider extends MechanicalMob {
                 this.move(MoverType.SELF, direction.scale(0.12));
             }
         }
-        if (this.deathTime == 1 && !this.level().isClientSide) {
+        if (this.deathTime == 1 && !this.level().isClientSide()) {
             LOGGER.debug("Mechanical spider death animation triggered entity={} selfDestructing={} animation=animation.mechanical_spider.explode", this.getId(), this.selfDestructing);
             this.triggerAnim("action", DEATH);
         }
-        if (!this.level().isClientSide && !this.overloadExplosionTriggered && this.deathTime >= DEATH_EXPLOSION_TICK) {
+        if (!this.level().isClientSide() && !this.overloadExplosionTriggered && this.deathTime >= DEATH_EXPLOSION_TICK) {
             this.overloadExplosionTriggered = true;
             double chainRadiusSquared = CHAIN_TRIGGER_RADIUS * CHAIN_TRIGGER_RADIUS;
             for (AnimatedHostileMob nearbyMob : this.level().getEntitiesOfClass(AnimatedHostileMob.class, this.getBoundingBox().inflate(CHAIN_TRIGGER_RADIUS))) {
@@ -348,7 +348,7 @@ public final class MechanicalSpider extends MechanicalMob {
             ExplosionEffects.explode(this.level(), this, null, calculator,
                 this.getX(), this.getY() + 0.3, this.getZ(), explosionRadius);
         }
-        if (this.deathTime >= DEATH_CLEANUP_TICKS && !this.level().isClientSide && !this.isRemoved()) {
+        if (this.deathTime >= DEATH_CLEANUP_TICKS && !this.level().isClientSide() && !this.isRemoved()) {
             LOGGER.debug("Mechanical spider death animation cleanup entity={} deathTime={} animationLengthTicks={}", this.getId(), this.deathTime, DEATH_ANIMATION_TICKS);
             this.level().broadcastEntityEvent(this, (byte)60);
             this.remove(RemovalReason.KILLED);

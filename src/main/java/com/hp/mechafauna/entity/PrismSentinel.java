@@ -111,9 +111,9 @@ public final class PrismSentinel extends MechanicalMob {
     }
 
     @Override
-    public boolean isAlliedTo(Entity other) {
+    protected boolean considersEntityAsAlly(Entity other) {
         return this.supportOwner != null && (this.supportOwner.equals(other.getUUID()) || samePlayerSummon(this, other))
-            || super.isAlliedTo(other);
+            || super.considersEntityAsAlly(other);
     }
 
     @Override
@@ -125,40 +125,38 @@ public final class PrismSentinel extends MechanicalMob {
     }
 
     @Override
-    public void addAdditionalSaveData(net.minecraft.nbt.CompoundTag tag) {
-        super.addAdditionalSaveData(tag);
-        if (this.supportOwner != null) {
-            tag.putUUID("SupportOwner", this.supportOwner);
-        }
+    protected void addAdditionalSaveData(net.minecraft.world.level.storage.ValueOutput output) {
+        super.addAdditionalSaveData(output);
+        output.storeNullable("SupportOwner", net.minecraft.core.UUIDUtil.CODEC, this.supportOwner);
         if (this.supportTicks > 0) {
-            tag.putInt("SupportTicks", this.supportTicks);
+            output.putInt("SupportTicks", this.supportTicks);
         }
     }
 
     @Override
-    public void readAdditionalSaveData(net.minecraft.nbt.CompoundTag tag) {
-        super.readAdditionalSaveData(tag);
-        this.supportOwner = tag.hasUUID("SupportOwner") ? tag.getUUID("SupportOwner") : null;
-        this.supportTicks = tag.contains("SupportTicks") ? tag.getInt("SupportTicks") : -1;
+    protected void readAdditionalSaveData(net.minecraft.world.level.storage.ValueInput input) {
+        super.readAdditionalSaveData(input);
+        this.supportOwner = input.read("SupportOwner", net.minecraft.core.UUIDUtil.CODEC).orElse(null);
+        this.supportTicks = input.getIntOr("SupportTicks", -1);
     }
 
     @Override
     public void tick() {
-        if (!this.level().isClientSide && this.supportOwner != null) {
+        if (!this.level().isClientSide() && this.supportOwner != null) {
             this.retargetSupport();
         }
-        if (!this.level().isClientSide && this.sharedAttackCooldown > 0) {
+        if (!this.level().isClientSide() && this.sharedAttackCooldown > 0) {
             this.sharedAttackCooldown--;
         }
         super.tick();
-        if (!this.level().isClientSide && this.supportTicks > 0) {
+        if (!this.level().isClientSide() && this.supportTicks > 0) {
             this.supportTicks--;
             if (this.supportTicks == 0) {
                 this.discard();
                 return;
             }
         }
-        if (this.level().isClientSide) {
+        if (this.level().isClientSide()) {
             float yaw = this.entityData.get(DATA_LASER_YAW);
             float pitch = this.entityData.get(DATA_LASER_PITCH);
             float bodyPitch = this.entityData.get(DATA_BODY_PITCH);
@@ -321,7 +319,7 @@ public final class PrismSentinel extends MechanicalMob {
             LaserRay ray = this.traceLaser(0.0F, yaw, this.getLaserPitch(0.0F));
             for (LivingEntity victim : ray.victims()) {
                 if (hitThisTick.add(victim.getId()) && this.lastSweepHitCycle.getOrDefault(victim.getId(), -1) != cycle
-                    && victim.hurt(this.damageSources().mobAttack(this), 8.0F)) {
+                    && victim.hurtOrSimulate(this.damageSources().mobAttack(this), 8.0F)) {
                     victim.igniteForSeconds(4.0F);
                     this.lastSweepHitCycle.put(victim.getId(), cycle);
                 }
@@ -340,7 +338,7 @@ public final class PrismSentinel extends MechanicalMob {
 
     private void damageLaserVictims(List<LivingEntity> victims, float damage) {
         for (LivingEntity victim : victims) {
-            if (victim.hurt(this.damageSources().mobAttack(this), damage)) {
+            if (victim.hurtOrSimulate(this.damageSources().mobAttack(this), damage)) {
                 victim.igniteForSeconds(4.0F);
             }
         }
@@ -364,7 +362,7 @@ public final class PrismSentinel extends MechanicalMob {
     }
 
     public float getLaserModelYaw(float partialTick) {
-        return this.level().isClientSide && this.clientTracking
+        return this.level().isClientSide() && this.clientTracking
             ? Mth.rotLerp(partialTick, this.clientYawOld, this.clientYaw) : this.entityData.get(DATA_LASER_YAW);
     }
 
@@ -378,12 +376,12 @@ public final class PrismSentinel extends MechanicalMob {
     }
 
     public float getLaserPitch(float partialTick) {
-        return this.level().isClientSide && this.clientTracking
+        return this.level().isClientSide() && this.clientTracking
             ? Mth.lerp(partialTick, this.clientPitchOld, this.clientPitch) : this.entityData.get(DATA_LASER_PITCH);
     }
 
     public float getBodyTiltRadians(float partialTick) {
-        float pitch = this.level().isClientSide && this.clientTracking
+        float pitch = this.level().isClientSide() && this.clientTracking
             ? Mth.lerp(partialTick, this.clientBodyPitchOld, this.clientBodyPitch) : this.entityData.get(DATA_BODY_PITCH);
         return -pitch * Mth.DEG_TO_RAD;
     }

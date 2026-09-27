@@ -15,6 +15,8 @@ import com.hp.mechafauna.entity.PrismSentinel;
 import com.hp.mechafauna.entity.SaucerLaserStrike;
 import com.hp.mechafauna.entity.RideableMechanicalWolf;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
@@ -32,43 +34,43 @@ public final class ModEntities {
             .sized(1.25F, 1.2F)
             .passengerAttachments(new Vec3(0.0, 0.9, 0.0))
             .clientTrackingRange(10)
-            .build("mechafauna:rideable_mechanical_wolf")
+            .build(ResourceKey.create(Registries.ENTITY_TYPE, Identifier.fromNamespaceAndPath(Mechafauna.MOD_ID, "rideable_mechanical_wolf")))
     );
     public static final DeferredHolder<EntityType<?>, EntityType<MechanicalWolf>> MECHANICAL_WOLF = ENTITY_TYPES.register(
         "mechanical_wolf",
-        () -> EntityType.Builder.of(MechanicalWolf::new, MobCategory.MONSTER).sized(1.25F, 1.2F).clientTrackingRange(10).build("mechafauna:mechanical_wolf")
+        () -> EntityType.Builder.of(MechanicalWolf::new, MobCategory.MONSTER).sized(1.25F, 1.2F).clientTrackingRange(10).build(ResourceKey.create(Registries.ENTITY_TYPE, Identifier.fromNamespaceAndPath(Mechafauna.MOD_ID, "mechanical_wolf")))
     );
     public static final DeferredHolder<EntityType<?>, EntityType<MechanicalTank>> MECHANICAL_TANK = ENTITY_TYPES.register(
         "mechanical_tank",
-        () -> EntityType.Builder.of(MechanicalTank::new, MobCategory.MONSTER).sized(2.4F, 1.9F).clientTrackingRange(12).build("mechafauna:mechanical_tank")
+        () -> EntityType.Builder.of(MechanicalTank::new, MobCategory.MONSTER).sized(2.4F, 1.9F).clientTrackingRange(12).build(ResourceKey.create(Registries.ENTITY_TYPE, Identifier.fromNamespaceAndPath(Mechafauna.MOD_ID, "mechanical_tank")))
     );
     public static final DeferredHolder<EntityType<?>, EntityType<MechanicalDrone>> MECHANICAL_DRONE = ENTITY_TYPES.register(
         "mechanical_drone",
-        () -> EntityType.Builder.of(MechanicalDrone::new, MobCategory.MONSTER).sized(2.4F, 1.4F).passengerAttachments(new Vec3(0.0, -0.46, -0.2875)).clientTrackingRange(12).build("mechafauna:mechanical_drone")
+        () -> EntityType.Builder.of(MechanicalDrone::new, MobCategory.MONSTER).sized(2.4F, 1.4F).passengerAttachments(new Vec3(0.0, -0.46, -0.2875)).clientTrackingRange(12).build(ResourceKey.create(Registries.ENTITY_TYPE, Identifier.fromNamespaceAndPath(Mechafauna.MOD_ID, "mechanical_drone")))
     );
     public static final DeferredHolder<EntityType<?>, EntityType<MilitaryDrone>> MILITARY_DRONE = ENTITY_TYPES.register(
         "military_drone",
-        () -> EntityType.Builder.of(MilitaryDrone::new, MobCategory.MONSTER).sized(2.4F, 1.4F).passengerAttachments(new Vec3(0.0, -0.46, -0.2875)).clientTrackingRange(12).build("mechafauna:military_drone")
+        () -> EntityType.Builder.of(MilitaryDrone::new, MobCategory.MONSTER).sized(2.4F, 1.4F).passengerAttachments(new Vec3(0.0, -0.46, -0.2875)).clientTrackingRange(12).build(ResourceKey.create(Registries.ENTITY_TYPE, Identifier.fromNamespaceAndPath(Mechafauna.MOD_ID, "military_drone")))
     );
     public static final DeferredHolder<EntityType<?>, EntityType<MechanicalSpider>> MECHANICAL_SPIDER = ENTITY_TYPES.register(
         "mechanical_spider",
-        () -> EntityType.Builder.of(MechanicalSpider::new, MobCategory.MONSTER).sized(1.35F, 0.9F).clientTrackingRange(10).build("mechafauna:mechanical_spider")
+        () -> EntityType.Builder.of(MechanicalSpider::new, MobCategory.MONSTER).sized(1.35F, 0.9F).clientTrackingRange(10).build(ResourceKey.create(Registries.ENTITY_TYPE, Identifier.fromNamespaceAndPath(Mechafauna.MOD_ID, "mechanical_spider")))
     );
     public static final DeferredHolder<EntityType<?>, EntityType<HeavyMech>> HEAVY_MECH = ENTITY_TYPES.register(
         "heavy_mech",
-        () -> EntityType.Builder.of(HeavyMech::new, MobCategory.MONSTER).sized(2.0F, 3.5F).clientTrackingRange(16).build("mechafauna:heavy_mech")
+        () -> EntityType.Builder.of(HeavyMech::new, MobCategory.MONSTER).sized(2.0F, 3.5F).clientTrackingRange(16).build(ResourceKey.create(Registries.ENTITY_TYPE, Identifier.fromNamespaceAndPath(Mechafauna.MOD_ID, "heavy_mech")))
     );
     public static final DeferredHolder<EntityType<?>, EntityType<FlameCrawler>> FLAME_CRAWLER = ENTITY_TYPES.register(
         "flame_crawler",
-        () -> EntityType.Builder.of(FlameCrawler::new, MobCategory.MONSTER).sized(3.1F, 1.8F).clientTrackingRange(12).build("mechafauna:flame_crawler")
+        () -> EntityType.Builder.of(FlameCrawler::new, MobCategory.MONSTER).sized(3.1F, 1.8F).clientTrackingRange(12).build(ResourceKey.create(Registries.ENTITY_TYPE, Identifier.fromNamespaceAndPath(Mechafauna.MOD_ID, "flame_crawler")))
     );
     public static final DeferredHolder<EntityType<?>, EntityType<PrismSentinel>> PRISM_SENTINEL = ENTITY_TYPES.register(
         "prism_sentinel",
-        () -> EntityType.Builder.of(PrismSentinel::new, MobCategory.MONSTER).sized(1.45F, 1.55F).clientTrackingRange(12).build("mechafauna:prism_sentinel")
+        () -> EntityType.Builder.of(PrismSentinel::new, MobCategory.MONSTER).sized(1.45F, 1.55F).clientTrackingRange(12).build(ResourceKey.create(Registries.ENTITY_TYPE, Identifier.fromNamespaceAndPath(Mechafauna.MOD_ID, "prism_sentinel")))
     );
     public static final DeferredHolder<EntityType<?>, EntityType<FlyingSaucerBoss>> FLYING_SAUCER_BOSS = ENTITY_TYPES.register(
         "flying_saucer_boss",
-        () -> EntityType.Builder.of(FlyingSaucerBoss::new, MobCategory.MONSTER).sized(10.4F, 5.6F).clientTrackingRange(32).updateInterval(1).build("mechafauna:flying_saucer_boss")
+        () -> EntityType.Builder.of(FlyingSaucerBoss::new, MobCategory.MONSTER).sized(10.4F, 5.6F).clientTrackingRange(32).updateInterval(1).build(ResourceKey.create(Registries.ENTITY_TYPE, Identifier.fromNamespaceAndPath(Mechafauna.MOD_ID, "flying_saucer_boss")))
     );
     public static final DeferredHolder<EntityType<?>, EntityType<SaucerLaserStrike>> SAUCER_LASER_STRIKE = ENTITY_TYPES.register(
         "saucer_laser_strike",
@@ -77,15 +79,15 @@ public final class ModEntities {
             .clientTrackingRange(64)
             .updateInterval(1)
             .noSave()
-            .build("mechafauna:saucer_laser_strike")
+            .build(ResourceKey.create(Registries.ENTITY_TYPE, Identifier.fromNamespaceAndPath(Mechafauna.MOD_ID, "saucer_laser_strike")))
     );
     public static final DeferredHolder<EntityType<?>, EntityType<MechProjectile>> MECH_PROJECTILE = ENTITY_TYPES.register(
         "mech_projectile",
-        () -> EntityType.Builder.<MechProjectile>of(MechProjectile::new, MobCategory.MISC).sized(0.28F, 0.28F).clientTrackingRange(10).updateInterval(1).build("mechafauna:mech_projectile")
+        () -> EntityType.Builder.<MechProjectile>of(MechProjectile::new, MobCategory.MISC).sized(0.28F, 0.28F).clientTrackingRange(10).updateInterval(1).build(ResourceKey.create(Registries.ENTITY_TYPE, Identifier.fromNamespaceAndPath(Mechafauna.MOD_ID, "mech_projectile")))
     );
     public static final DeferredHolder<EntityType<?>, EntityType<PrismBeam>> PRISM_BEAM = ENTITY_TYPES.register(
         "prism_beam",
-        () -> EntityType.Builder.<PrismBeam>of(PrismBeam::new, MobCategory.MISC).noSave().noSummon().sized(0.1F, 0.1F).clientTrackingRange(8).updateInterval(1).build("mechafauna:prism_beam")
+        () -> EntityType.Builder.<PrismBeam>of(PrismBeam::new, MobCategory.MISC).noSave().noSummon().sized(0.1F, 0.1F).clientTrackingRange(8).updateInterval(1).build(ResourceKey.create(Registries.ENTITY_TYPE, Identifier.fromNamespaceAndPath(Mechafauna.MOD_ID, "prism_beam")))
     );
 
     private ModEntities() {

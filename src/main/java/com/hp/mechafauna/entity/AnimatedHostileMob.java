@@ -25,16 +25,17 @@ import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
-import software.bernie.geckolib.animatable.GeoEntity;
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.animation.AnimatableManager;
-import software.bernie.geckolib.animation.AnimationController;
-import software.bernie.geckolib.animation.AnimationState;
-import software.bernie.geckolib.animation.PlayState;
-import software.bernie.geckolib.animation.RawAnimation;
-import software.bernie.geckolib.util.GeckoLibUtil;
+import com.geckolib.animatable.GeoEntity;
+import com.geckolib.animatable.instance.AnimatableInstanceCache;
+import com.geckolib.animatable.manager.AnimatableManager;
+import com.geckolib.animation.AnimationController;
+import com.geckolib.animation.state.AnimationTest;
+import com.geckolib.animation.object.PlayState;
+import com.geckolib.animation.RawAnimation;
+import com.geckolib.util.GeckoLibUtil;
 
 public abstract class AnimatedHostileMob extends Monster implements GeoEntity {
     public static boolean isIgnoredByOtherMechs(Entity entity) {
@@ -61,7 +62,7 @@ public abstract class AnimatedHostileMob extends Monster implements GeoEntity {
     @Override
     public void tick() {
         super.tick();
-        if (this.level().isClientSide) {
+        if (this.level().isClientSide()) {
             return;
         }
         this.updateCombatAim();
@@ -100,12 +101,12 @@ public abstract class AnimatedHostileMob extends Monster implements GeoEntity {
     }
 
     @Override
-    protected float tickHeadTurn(float bodyYaw, float headYaw) {
+    protected void tickHeadTurn(float bodyYaw) {
         if (this.hasCombatTarget()) {
             this.yBodyRot = this.getYRot();
-            return headYaw;
+            return;
         }
-        return super.tickHeadTurn(bodyYaw, headYaw);
+        super.tickHeadTurn(bodyYaw);
     }
 
     @Override
@@ -118,7 +119,7 @@ public abstract class AnimatedHostileMob extends Monster implements GeoEntity {
     @Override
     public void setTarget(LivingEntity target) {
         super.setTarget(target);
-        if (!this.level().isClientSide) {
+        if (!this.level().isClientSide()) {
             LivingEntity actualTarget = this.getTarget();
             this.entityData.set(DATA_TARGET_ID, actualTarget != null && actualTarget.isAlive() ? actualTarget.getId() : -1);
         }
@@ -157,8 +158,8 @@ public abstract class AnimatedHostileMob extends Monster implements GeoEntity {
         this.goalSelector.addGoal(8, new LookAtPlayerGoal(this, Player.class, 8.0F));
         this.goalSelector.addGoal(9, new RandomLookAroundGoal(this));
         this.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, Player.class, true));
-        this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Mob.class, 10, true, false,
-            target -> target instanceof Enemy && !(target instanceof AnimatedHostileMob)));
+        this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<Mob>(this, Mob.class, 10, true, false,
+            (target, serverLevel) -> target instanceof Enemy && !(target instanceof AnimatedHostileMob)));
         this.targetSelector.addGoal(0, new HurtByTargetGoal(this) {
             @Override
             public boolean canUse() {
@@ -178,8 +179,8 @@ public abstract class AnimatedHostileMob extends Monster implements GeoEntity {
 
     @Override
     public final void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
-        AnimationController<AnimatedHostileMob> action = new AnimationController<>(this, "action", this.getActionTransitionTicks(), state -> PlayState.STOP);
-        AnimationController<AnimatedHostileMob> movement = new AnimationController<>(this, "movement", 3, state -> this.updateMovementAnimation(state, action));
+        AnimationController<AnimatedHostileMob> action = new AnimationController<>("action", this.getActionTransitionTicks(), state -> PlayState.STOP);
+        AnimationController<AnimatedHostileMob> movement = new AnimationController<>("movement", 3, state -> this.updateMovementAnimation(state, action));
         for (Map.Entry<String, String> entry : this.getActionAnimations().entrySet()) {
             action.triggerableAnim(entry.getKey(), RawAnimation.begin().thenPlay(entry.getValue()));
         }
@@ -187,9 +188,9 @@ public abstract class AnimatedHostileMob extends Monster implements GeoEntity {
         this.addExtraControllers(controllers);
     }
 
-    private PlayState updateMovementAnimation(AnimationState<AnimatedHostileMob> state, AnimationController<AnimatedHostileMob> actionController) {
-        float movementAmount = state.getLimbSwingAmount();
-        this.movementAnimationActive = movementAmount > (this.movementAnimationActive ? 0.02F : 0.05F);
+    private PlayState updateMovementAnimation(AnimationTest<AnimatedHostileMob> state, AnimationController<AnimatedHostileMob> actionController) {
+        float movementAmount = state.isMoving() ? 1.0F : 0.0F;
+        this.movementAnimationActive = state.isMoving();
         String animation = null;
         if (!this.isPerformingAction() && !actionController.isPlayingTriggeredAnimation() && !this.isDeadOrDying()) {
             animation = this.movementAnimationActive ? this.getMovementAnimation() : this.getIdleAnimation();
@@ -198,14 +199,12 @@ public abstract class AnimatedHostileMob extends Monster implements GeoEntity {
             LOGGER.debug("Mech locomotion entity={} animation={} hasTarget={} movementAmount={}", this.getId(), animation, this.hasCombatTarget(), movementAmount);
             this.lastMovementAnimation = animation;
             if (animation != null) {
-                state.resetCurrentAnimation();
             }
         }
         if (animation == null) {
             return PlayState.STOP;
         }
-        state.setAnimation(RawAnimation.begin().thenLoop(animation));
-        return PlayState.CONTINUE;
+        return state.setAndContinue(RawAnimation.begin().thenLoop(animation));
     }
 
     protected void addExtraControllers(AnimatableManager.ControllerRegistrar controllers) {
@@ -230,6 +229,10 @@ public abstract class AnimatedHostileMob extends Monster implements GeoEntity {
     }
 
     protected abstract Map<String, String> getActionAnimations();
+
+    public final String getActionAnimation(String action) {
+        return this.getActionAnimations().get(action);
+    }
 
     public abstract List<String> getAvailableActions(net.minecraft.world.entity.LivingEntity target, double distanceSquared);
 
@@ -260,6 +263,10 @@ public abstract class AnimatedHostileMob extends Monster implements GeoEntity {
     public final String getActiveAction() {
         String action = this.entityData.get(DATA_ACTION);
         return action.isEmpty() ? null : action;
+    }
+
+    public final double getActionAnimationSeconds(float partialTick) {
+        return Math.max(0, this.activeActionTicks - this.getActionTransitionTicks() + partialTick) / 20.0;
     }
 
     public final void beginAction(String action, net.minecraft.world.entity.LivingEntity target) {
@@ -309,7 +316,7 @@ public abstract class AnimatedHostileMob extends Monster implements GeoEntity {
 
     protected final boolean damageTarget(net.minecraft.world.entity.LivingEntity target, float damage, double maxDistanceSquared) {
         if (target.isAlive() && this.distanceToSqr(target) <= maxDistanceSquared && this.hasLineOfSight(target)) {
-            return target.hurt(this.damageSources().mobAttack(this), damage);
+            return target.hurtOrSimulate(this.damageSources().mobAttack(this), damage);
         }
         return false;
     }
@@ -321,7 +328,7 @@ public abstract class AnimatedHostileMob extends Monster implements GeoEntity {
             this.getBoundingBox().inflate(radius)
         )) {
             if (victim != this && victim.isAlive() && victim.distanceToSqr(this) <= radiusSquared) {
-                if (victim.hurt(this.damageSources().mobAttack(this), damage)) {
+                if (victim.hurtOrSimulate(this.damageSources().mobAttack(this), damage)) {
                     net.minecraft.world.phys.Vec3 push = victim.position().subtract(this.position()).normalize();
                     victim.push(push.x * knockback, 0.18, push.z * knockback);
                 }
@@ -370,7 +377,7 @@ public abstract class AnimatedHostileMob extends Monster implements GeoEntity {
     }
 
     private void launchProjectileInternal(LivingEntity target, WeaponMount mount, Vec3 muzzle, Vec3 aimPoint, boolean missile, boolean laser, boolean prismLaser, double speed, float impactDamage, boolean bypassHurtCooldown) {
-        if (this.level().isClientSide || target == null || !target.isAlive() || aimPoint == null) {
+        if (this.level().isClientSide() || target == null || !target.isAlive() || aimPoint == null) {
             return;
         }
         this.updateCombatAim();
@@ -408,7 +415,6 @@ public abstract class AnimatedHostileMob extends Monster implements GeoEntity {
         return this.animationCache;
     }
 
-    @Override
     public double getTick(Object animatable) {
         return this.tickCount;
     }
