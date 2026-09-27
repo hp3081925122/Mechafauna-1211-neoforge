@@ -2,26 +2,30 @@ package com.hp.mechafauna.client;
 
 import com.hp.mechafauna.Mechafauna;
 import com.hp.mechafauna.network.FireSupportPayload;
+import com.hp.mechafauna.network.ModNetwork;
 import net.minecraft.client.Minecraft;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.TickEvent.ClientTickEvent;
 
-@EventBusSubscriber(modid = Mechafauna.MOD_ID, bus = EventBusSubscriber.Bus.GAME, value = Dist.CLIENT)
+@EventBusSubscriber(modid = Mechafauna.MOD_ID, bus = EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
 public final class FireSupportClientEvents {
     private FireSupportClientEvents() {
     }
 
     @SubscribeEvent
-    public static void onClientTick(ClientTickEvent.Post event) {
+    public static void onClientTick(ClientTickEvent event) {
+        if (event.phase != TickEvent.Phase.END) {
+            return;
+        }
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || minecraft.screen != null || minecraft.getConnection() == null) {
             return;
         }
         while (ModKeyMappings.FIRE_SUPPORT.consumeClick()) {
-            PacketDistributor.sendToServer(new FireSupportPayload());
+            ModNetwork.CHANNEL.sendToServer(new FireSupportPayload());
         }
     }
 }

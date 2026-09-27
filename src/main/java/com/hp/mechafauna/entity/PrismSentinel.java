@@ -70,12 +70,12 @@ public final class PrismSentinel extends MechanicalMob {
     }
 
     @Override
-    protected void defineSynchedData(SynchedEntityData.Builder builder) {
-        super.defineSynchedData(builder);
-        builder.define(DATA_LASER_TICK, 0);
-        builder.define(DATA_LASER_YAW, 0.0F);
-        builder.define(DATA_LASER_PITCH, 0.0F);
-        builder.define(DATA_BODY_PITCH, 0.0F);
+    protected void defineSynchedData() {
+        super.defineSynchedData();
+        this.entityData.define(DATA_LASER_TICK, 0);
+        this.entityData.define(DATA_LASER_YAW, 0.0F);
+        this.entityData.define(DATA_LASER_PITCH, 0.0F);
+        this.entityData.define(DATA_BODY_PITCH, 0.0F);
     }
 
     public void assignSupport(Player owner, int lifeTicks) {
@@ -277,7 +277,7 @@ public final class PrismSentinel extends MechanicalMob {
             this.entityData.set(DATA_LASER_YAW, this.yBodyRot);
             this.entityData.set(DATA_LASER_PITCH, 0.0F);
             this.entityData.set(DATA_BODY_PITCH, 0.0F);
-            this.level().playSound(null, this.blockPosition(), SoundEvents.CROSSBOW_LOADING_END.value(), SoundSource.HOSTILE, 0.75F, 1.65F);
+            this.level().playSound(null, this.blockPosition(), SoundEvents.CROSSBOW_LOADING_END, SoundSource.HOSTILE, 0.75F, 1.65F);
         }
     }
 
@@ -322,7 +322,7 @@ public final class PrismSentinel extends MechanicalMob {
             for (LivingEntity victim : ray.victims()) {
                 if (hitThisTick.add(victim.getId()) && this.lastSweepHitCycle.getOrDefault(victim.getId(), -1) != cycle
                     && victim.hurt(this.damageSources().mobAttack(this), 8.0F)) {
-                    victim.igniteForSeconds(4.0F);
+                    victim.setSecondsOnFire(4);
                     this.lastSweepHitCycle.put(victim.getId(), cycle);
                 }
             }
@@ -341,7 +341,7 @@ public final class PrismSentinel extends MechanicalMob {
     private void damageLaserVictims(List<LivingEntity> victims, float damage) {
         for (LivingEntity victim : victims) {
             if (victim.hurt(this.damageSources().mobAttack(this), damage)) {
-                victim.igniteForSeconds(4.0F);
+                victim.setSecondsOnFire(4);
             }
         }
     }

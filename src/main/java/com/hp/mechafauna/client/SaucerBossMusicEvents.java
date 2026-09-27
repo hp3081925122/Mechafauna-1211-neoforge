@@ -1,19 +1,14 @@
 package com.hp.mechafauna.client;
 
-import com.hp.mechafauna.Mechafauna;
 import com.hp.mechafauna.entity.FlyingSaucerBoss;
 import com.hp.mechafauna.registry.ModSounds;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.sounds.Music;
 import net.minecraft.world.entity.Entity;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.SelectMusicEvent;
 import org.slf4j.Logger;
 
-@EventBusSubscriber(modid = Mechafauna.MOD_ID, bus = EventBusSubscriber.Bus.GAME, value = Dist.CLIENT)
 public final class SaucerBossMusicEvents {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final double MUSIC_RANGE = 96.0;
@@ -23,13 +18,15 @@ public final class SaucerBossMusicEvents {
     private SaucerBossMusicEvents() {
     }
 
-    @SubscribeEvent
-    public static void onSelectMusic(SelectMusicEvent event) {
+    public static Music overrideMusic(Music fallback) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.level == null || minecraft.player == null) {
-            return;
+            if (active) {
+                active = false;
+                LOGGER.debug("Saucer boss music active=false");
+            }
+            return fallback;
         }
-        // 附近存在存活的飞碟母舰时切换为战斗音乐
         boolean nearby = false;
         for (Entity entity : minecraft.level.entitiesForRendering()) {
             if (entity instanceof FlyingSaucerBoss saucer && saucer.isAlive()
@@ -43,12 +40,11 @@ public final class SaucerBossMusicEvents {
             LOGGER.debug("Saucer boss music active={}", active);
         }
         if (!nearby) {
-            return;
+            return fallback;
         }
-        // 立即替换当前音乐，播完后无间隔循环
         if (music == null) {
-            music = new Music(ModSounds.FLYING_SAUCER_BOSS_MUSIC, 0, 0, true);
+            music = new Music(BuiltInRegistries.SOUND_EVENT.wrapAsHolder(ModSounds.FLYING_SAUCER_BOSS_MUSIC.get()), 0, 0, true);
         }
-        event.overrideMusic(music);
+        return music;
     }
 }

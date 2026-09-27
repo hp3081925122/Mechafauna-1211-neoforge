@@ -11,18 +11,19 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.SpawnData;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.structures.JigsawStructure;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.gametest.GameTestHolder;
-import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
+import net.minecraftforge.gametest.GameTestHolder;
+import net.minecraftforge.gametest.PrefixGameTestTemplate;
 
 @GameTestHolder(Mechafauna.MOD_ID)
 @PrefixGameTestTemplate(false)
 public final class TankOutpostGameTests {
-    private static final ResourceLocation STRUCTURE = ResourceLocation.fromNamespaceAndPath(Mechafauna.MOD_ID, "tank_outpost");
+    private static final ResourceLocation STRUCTURE = new ResourceLocation(Mechafauna.MOD_ID, "tank_outpost");
 
     private TankOutpostGameTests() {
     }
@@ -63,16 +64,16 @@ public final class TankOutpostGameTests {
         helper.assertTrue(start.isPresent() && !start.orElseThrow().getPiecesBuilder().isEmpty(),
             "Tank outpost jigsaw generation produced no pieces");
 
-        var tanks = helper.getEntities(ModEntities.MECHANICAL_TANK.get());
+        var tanks = StructureEntityTestUtil.getEntities(helper, ModEntities.MECHANICAL_TANK.get(), STRUCTURE);
         helper.assertTrue(tanks.size() == 1, "Tank outpost must contain exactly one tank");
-        var tank = tanks.getFirst();
+        var tank = tanks.get(0);
         tank.setNoAi(true);
         helper.assertTrue(tank.isPersistenceRequired(), "The outpost tank must not naturally despawn");
         helper.assertTrue(tank.getBbWidth() > 3.4F && tank.getBbHeight() > 2.7F,
             "Tank scale was lost during template loading: width=" + tank.getBbWidth()
                 + ", height=" + tank.getBbHeight() + ", scale=" + tank.getScale());
         helper.assertTrue(level.noCollision(tank, tank.getBoundingBox()), "Tank spawn intersects the building");
-        var wolves = helper.getEntities(ModEntities.MECHANICAL_WOLF.get());
+        var wolves = StructureEntityTestUtil.getEntities(helper, ModEntities.MECHANICAL_WOLF.get(), STRUCTURE);
         helper.assertTrue(wolves.size() == 2, "Tank outpost must contain two fixed wolf guards");
         for (var wolf : wolves) {
             wolf.setNoAi(true);
@@ -105,9 +106,10 @@ public final class TankOutpostGameTests {
                 chests++;
                 helper.assertTrue(level.getBlockEntity(pos) instanceof ChestBlockEntity, "Outpost loot chest block entity is missing");
                 var chest = (ChestBlockEntity) level.getBlockEntity(pos);
-                helper.assertTrue(chest.getLootTable() != null, "Outpost chest lost its loot table");
-                var loot = chest.getLootTable().location();
-                if (loot.equals(ResourceLocation.fromNamespaceAndPath(Mechafauna.MOD_ID, "chests/fortress_armory"))) {
+                String lootTableId = chest.saveWithoutMetadata().getString("LootTable");
+                ResourceLocation loot = ResourceLocation.tryParse(lootTableId);
+                helper.assertTrue(loot != null, "Outpost chest lost its loot table");
+                if (loot.equals(new ResourceLocation(Mechafauna.MOD_ID, "chests/fortress_armory"))) {
                     armories++;
                 }
                 helper.assertTrue(!chest.isEmpty(), "Outpost loot table generated an empty chest");
@@ -116,11 +118,14 @@ public final class TankOutpostGameTests {
                 spawners++;
                 helper.assertTrue(level.getBlockEntity(pos) instanceof SpawnerBlockEntity, "Outpost spawner block entity is missing");
                 var spawner = (SpawnerBlockEntity) level.getBlockEntity(pos);
-                var nbt = spawner.saveWithoutMetadata(level.registryAccess());
-                var data = SpawnData.CODEC.parse(NbtOps.INSTANCE, nbt.getCompound("SpawnData")).getOrThrow();
+                var nbt = spawner.saveWithoutMetadata();
+                var data = SpawnData.CODEC.parse(NbtOps.INSTANCE, nbt.getCompound("SpawnData"))
+                    .getOrThrow(false, message -> { throw new IllegalStateException(message); });
                 helper.assertTrue(data.getEntityToSpawn().getString("id").equals("mechafauna:mechanical_wolf"), "Outpost spawner contains an unexpected entity");
-                helper.assertTrue(data.getCustomSpawnRules().isPresent()
-                    && data.getCustomSpawnRules().orElseThrow().isValidPosition(pos, level), "Outpost spawner rejects workshop lighting");
+                var rules = data.getCustomSpawnRules().orElseThrow();
+                helper.assertTrue(rules.blockLightLimit().isValueInRange(level.getMaxLocalRawBrightness(pos))
+                    && rules.skyLightLimit().isValueInRange(level.getBrightness(LightLayer.SKY, pos)),
+                    "Outpost spawner rejects workshop lighting");
                 helper.assertTrue(nbt.getShort("SpawnCount") == 1 && nbt.getShort("MaxNearbyEntities") == 2,
                     "Outpost spawner population limits are incorrect");
             }

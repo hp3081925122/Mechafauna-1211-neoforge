@@ -7,7 +7,7 @@ import net.minecraft.server.level.ServerEntity;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.Pose;
-import net.neoforged.neoforge.entity.PartEntity;
+import net.minecraftforge.entity.PartEntity;
 
 public final class SaucerDamagePart extends PartEntity<FlyingSaucerBoss> {
     private final int weaponIndex;
@@ -25,11 +25,11 @@ public final class SaucerDamagePart extends PartEntity<FlyingSaucerBoss> {
     }
 
     public void setPartPosition(double x, double centerY, double z) {
-        this.setPos(x, centerY - this.dimensions.height() * 0.5, z);
+        this.setPos(x, centerY - this.dimensions.height * 0.5, z);
     }
 
     @Override
-    protected void defineSynchedData(net.minecraft.network.syncher.SynchedEntityData.Builder builder) {
+    protected void defineSynchedData() {
     }
 
     @Override
@@ -57,7 +57,7 @@ public final class SaucerDamagePart extends PartEntity<FlyingSaucerBoss> {
     }
 
     @Override
-    public Packet<ClientGamePacketListener> getAddEntityPacket(ServerEntity serverEntity) {
+    public Packet<ClientGamePacketListener> getAddEntityPacket() {
         throw new UnsupportedOperationException();
     }
 
@@ -71,7 +71,6 @@ public final class SaucerDamagePart extends PartEntity<FlyingSaucerBoss> {
         return false;
     }
 
-    @Override
     public boolean canBeHitByProjectile() {
         return this.isPickable();
     }

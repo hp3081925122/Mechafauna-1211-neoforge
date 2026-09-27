@@ -46,11 +46,11 @@ import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4d;
 import org.joml.Vector3f;
 import org.slf4j.Logger;
-import software.bernie.geckolib.animation.AnimationController;
-import software.bernie.geckolib.animation.PlayState;
-import software.bernie.geckolib.animation.RawAnimation;
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.animation.AnimatableManager;
+import software.bernie.geckolib.core.animation.AnimationController;
+import software.bernie.geckolib.core.object.PlayState;
+import software.bernie.geckolib.core.animation.RawAnimation;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.core.animation.AnimatableManager;
 
 public final class FlyingSaucerBoss extends AnimatedHostileMob {
     private static final RawAnimation DEATH = RawAnimation.begin().thenPlay("animation.flying_saucer_boss.death");
@@ -173,21 +173,21 @@ public final class FlyingSaucerBoss extends AnimatedHostileMob {
     }
 
     @Override
-    protected void defineSynchedData(SynchedEntityData.Builder builder) {
-        super.defineSynchedData(builder);
+    protected void defineSynchedData() {
+        super.defineSynchedData();
         for (int i = 0; i < FlyingSaucerWeapon.values().length; i++) {
-            builder.define(DATA_PART_HEALTH.get(i), weaponHealthFor(BASE_HEALTH));
-            builder.define(DATA_WEAPON_YAW.get(i), 0.0F);
-            builder.define(DATA_WEAPON_PITCH.get(i), 0.0F);
+            this.entityData.define(DATA_PART_HEALTH.get(i), weaponHealthFor(BASE_HEALTH));
+            this.entityData.define(DATA_WEAPON_YAW.get(i), 0.0F);
+            this.entityData.define(DATA_WEAPON_PITCH.get(i), 0.0F);
         }
         // 下射激光的同步数据
-        builder.define(DATA_LASER_TICK, 0);
-        builder.define(DATA_LASER_IMPACT, new Vector3f());
-        builder.define(DATA_BOSS_BAR_ID, Optional.empty());
+        this.entityData.define(DATA_LASER_TICK, 0);
+        this.entityData.define(DATA_LASER_IMPACT, new Vector3f());
+        this.entityData.define(DATA_BOSS_BAR_ID, Optional.empty());
         // 召唤传送光束的同步数据
-        builder.define(DATA_SUMMON_TICK, 0);
-        builder.define(DATA_SUMMON_KIND, SUMMON_NONE);
-        builder.define(DATA_SUMMON_POINT, new Vector3f());
+        this.entityData.define(DATA_SUMMON_TICK, 0);
+        this.entityData.define(DATA_SUMMON_KIND, SUMMON_NONE);
+        this.entityData.define(DATA_SUMMON_POINT, new Vector3f());
     }
 
     @Override
@@ -233,7 +233,7 @@ public final class FlyingSaucerBoss extends AnimatedHostileMob {
     }
 
     @Override
-    public net.neoforged.neoforge.entity.PartEntity<?>[] getParts() {
+    public net.minecraftforge.entity.PartEntity<?>[] getParts() {
         return this.parts;
     }
 
@@ -305,7 +305,7 @@ public final class FlyingSaucerBoss extends AnimatedHostileMob {
             LOGGER.info("Saucer weapon destroyed boss={} weapon={} bodyHealth={}/{}", this.getId(), FlyingSaucerWeapon.values()[index], this.getHealth(), this.getMaxHealth());
             // 部件被摧毁时的爆炸特效
             Vec3 partPos = part.position();
-            this.level().playSound(null, partPos.x, partPos.y, partPos.z, SoundEvents.GENERIC_EXPLODE.value(),
+            this.level().playSound(null, partPos.x, partPos.y, partPos.z, SoundEvents.GENERIC_EXPLODE,
                 SoundSource.HOSTILE, 2.5F, 0.7F);
             if (this.level() instanceof ServerLevel serverLevel) {
                 serverLevel.sendParticles(ParticleTypes.EXPLOSION, partPos.x, partPos.y, partPos.z, 3, 0.4, 0.4, 0.4, 0.0);
@@ -564,13 +564,13 @@ public final class FlyingSaucerBoss extends AnimatedHostileMob {
                 origin.x + LASER_BEAM_RADIUS, origin.y, origin.z + LASER_BEAM_RADIUS);
             for (LivingEntity victim : this.level().getEntitiesOfClass(LivingEntity.class, column, this::canTarget)) {
                 if (victim.hurt(this.damageSources().mobAttack(this), LASER_BEAM_DAMAGE)) {
-                    victim.igniteForSeconds(3.0F);
+                    victim.setSecondsOnFire(3);
                 }
             }
         }
         // 每隔固定时间放出一圈波纹
         if (fireTick >= 0 && fireTick < LASER_FIRE_TICKS && fireTick % WAVE_INTERVAL == 0) {
-            this.level().playSound(null, impact.x, impact.y, impact.z, SoundEvents.GENERIC_EXPLODE.value(),
+            this.level().playSound(null, impact.x, impact.y, impact.z, SoundEvents.GENERIC_EXPLODE,
                 SoundSource.HOSTILE, 2.2F, 0.5F + fireTick / (float)LASER_FIRE_TICKS * 0.3F);
             if (this.level() instanceof ServerLevel serverLevel) {
                 BlockState ground = this.level().getBlockState(BlockPos.containing(impact.x, impact.y - 0.1, impact.z));
@@ -973,7 +973,7 @@ public final class FlyingSaucerBoss extends AnimatedHostileMob {
         double x = this.getX();
         double y = this.getY() + 2.0;
         double z = this.getZ();
-        serverLevel.playSound(null, x, y, z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 8.0F, 0.55F);
+        serverLevel.playSound(null, x, y, z, SoundEvents.GENERIC_EXPLODE, SoundSource.HOSTILE, 8.0F, 0.55F);
         serverLevel.sendParticles(ParticleTypes.EXPLOSION_EMITTER, x, y, z, 40, 3.0, 2.0, 3.0, 0.0);
         serverLevel.sendParticles(ParticleTypes.SMOKE, x, this.getY(), z, 120, 4.0, 2.0, 4.0, 0.08);
     }

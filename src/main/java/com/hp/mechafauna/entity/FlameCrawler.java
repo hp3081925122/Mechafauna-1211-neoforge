@@ -55,10 +55,10 @@ public final class FlameCrawler extends MechanicalMob {
     }
 
     @Override
-    protected void defineSynchedData(SynchedEntityData.Builder builder) {
-        super.defineSynchedData(builder);
-        builder.define(DATA_FLAME_ACTION_TICK, 0);
-        builder.define(DATA_DETONATION_FUSE_TICKS, -1);
+    protected void defineSynchedData() {
+        super.defineSynchedData();
+        this.entityData.define(DATA_FLAME_ACTION_TICK, 0);
+        this.entityData.define(DATA_DETONATION_FUSE_TICKS, -1);
     }
 
     @Override
@@ -85,7 +85,7 @@ public final class FlameCrawler extends MechanicalMob {
         if (!this.isDetonationPrimed() && !this.isDeadOrDying()) {
             this.level().playSound(player, this.getX(), this.getY(), this.getZ(), SoundEvents.FLINTANDSTEEL_USE, this.getSoundSource(), 1.0F, this.random.nextFloat() * 0.4F + 0.8F);
             if (!this.level().isClientSide && this.primeForDetonation(player)) {
-                item.hurtAndBreak(1, player, LivingEntity.getSlotForHand(hand));
+                item.hurtAndBreak(1, player, living -> living.broadcastBreakEvent(hand));
             }
         }
         return InteractionResult.sidedSuccess(this.level().isClientSide);
@@ -181,8 +181,8 @@ public final class FlameCrawler extends MechanicalMob {
             return;
         }
         this.dead = true;
-        ExplosionEffects.explode(this.level(), this, null, null,
-            this.getX(), this.getY() + 0.3, this.getZ(), DETONATION_EXPLOSION_RADIUS);
+        ExplosionEffects.explode(this.level(), this, null,
+            this.getX(), this.getY() + 0.3, this.getZ(), DETONATION_EXPLOSION_RADIUS, ExplosionEffects.DEFAULT);
         this.discard();
     }
 
@@ -207,7 +207,7 @@ public final class FlameCrawler extends MechanicalMob {
         if (ray == null) {
             boolean targetDamaged = this.damageTarget(target, FLAME_DAMAGE, MAX_FLAME_LENGTH * MAX_FLAME_LENGTH);
             if (targetDamaged) {
-                target.igniteForSeconds(FLAME_IGNITE_SECONDS);
+                target.setSecondsOnFire((int)Math.ceil(FLAME_IGNITE_SECONDS));
             }
             LOGGER.debug("Flamethrower ray unavailable entity={} actionTick={} target={} targetDamaged={} distanceSquared={} hasLineOfSight={}",
                 this.getId(), actionTick, target.getId(), targetDamaged, this.distanceToSqr(target), this.hasLineOfSight(target));
@@ -218,7 +218,7 @@ public final class FlameCrawler extends MechanicalMob {
         if (length < 1.0E-4) {
             boolean targetDamaged = this.damageTarget(target, FLAME_DAMAGE, MAX_FLAME_LENGTH * MAX_FLAME_LENGTH);
             if (targetDamaged) {
-                target.igniteForSeconds(FLAME_IGNITE_SECONDS);
+                target.setSecondsOnFire((int)Math.ceil(FLAME_IGNITE_SECONDS));
             }
             LOGGER.debug("Flamethrower ray blocked entity={} actionTick={} target={} targetDamaged={} origin={}",
                 this.getId(), actionTick, target.getId(), targetDamaged, ray.origin());
@@ -242,13 +242,13 @@ public final class FlameCrawler extends MechanicalMob {
             }
             intersections++;
             if (victim.hurt(this.damageSources().mobAttack(this), FLAME_DAMAGE)) {
-                victim.igniteForSeconds(FLAME_IGNITE_SECONDS);
+                victim.setSecondsOnFire((int)Math.ceil(FLAME_IGNITE_SECONDS));
                 damaged++;
             }
         }
         boolean targetDamaged = this.damageTarget(target, FLAME_DAMAGE, MAX_FLAME_LENGTH * MAX_FLAME_LENGTH);
         if (targetDamaged) {
-            target.igniteForSeconds(FLAME_IGNITE_SECONDS);
+            target.setSecondsOnFire((int)Math.ceil(FLAME_IGNITE_SECONDS));
         }
         LOGGER.debug("Flamethrower damage scan entity={} actionTick={} target={} length={} intersections={} collateralDamaged={} targetDamaged={} distanceSquared={} hasLineOfSight={}",
             this.getId(), actionTick, target.getId(), length, intersections, damaged, targetDamaged,

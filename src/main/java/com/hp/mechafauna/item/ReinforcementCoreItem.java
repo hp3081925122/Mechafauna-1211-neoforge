@@ -2,16 +2,14 @@ package com.hp.mechafauna.item;
 
 import com.hp.mechafauna.Mechafauna;
 import com.hp.mechafauna.registry.ModItems;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.component.CustomData;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.event.AnvilUpdateEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.event.AnvilUpdateEvent;
 
-@EventBusSubscriber(modid = Mechafauna.MOD_ID, bus = EventBusSubscriber.Bus.GAME)
+@EventBusSubscriber(modid = Mechafauna.MOD_ID, bus = EventBusSubscriber.Bus.FORGE)
 public final class ReinforcementCoreItem extends Item {
     private static final String ARMOR_COOLDOWN_TAG = "mechafauna_reinforced_armor_cooldown";
     private static final String BULLET_DAMAGE_TAG = "mechafauna_reinforced_bullet_damage";
@@ -29,11 +27,12 @@ public final class ReinforcementCoreItem extends Item {
     }
 
     private static boolean hasUpgrade(ItemStack stack, String key) {
-        return stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag().getBoolean(key);
+        CompoundTag tag = stack.getTag();
+        return tag != null && tag.getBoolean(key);
     }
 
     private static void applyUpgrade(ItemStack stack, String key) {
-        CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> tag.putBoolean(key, true));
+        stack.getOrCreateTag().putBoolean(key, true);
     }
 
     @SubscribeEvent

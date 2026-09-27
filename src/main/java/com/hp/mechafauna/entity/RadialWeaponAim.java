@@ -1,6 +1,7 @@
 package com.hp.mechafauna.entity;
 
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.util.Mth;
 import org.joml.Matrix4d;
 
 public final class RadialWeaponAim {
@@ -17,7 +18,7 @@ public final class RadialWeaponAim {
         double vertical = afterYaw.y - pitchPivot.y;
         double horizontal = Math.hypot(afterYaw.x - pitchPivot.x, afterYaw.z - pitchPivot.z);
         double radius = Math.hypot(horizontal, vertical);
-        double muzzleOffset = Math.clamp((muzzle.y - pitchPivot.y) / Math.max(radius, 1.0E-6), -1.0, 1.0);
+        double muzzleOffset = Mth.clamp((muzzle.y - pitchPivot.y) / Math.max(radius, 1.0E-6), -1.0, 1.0);
         double pitch = Math.atan2(vertical, horizontal) - Math.asin(muzzleOffset);
         return new Angles((float)Math.toDegrees(yaw), (float)Math.toDegrees(pitch));
     }

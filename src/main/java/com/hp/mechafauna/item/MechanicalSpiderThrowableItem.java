@@ -37,7 +37,7 @@ public final class MechanicalSpiderThrowableItem extends Item {
             return InteractionResultHolder.fail(stack);
         }
         if (!player.getAbilities().instabuild) {
-            stack.consume(1, player);
+            stack.shrink(1);
         }
         return InteractionResultHolder.sidedSuccess(stack, false);
     }

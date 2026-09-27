@@ -6,15 +6,15 @@ import net.minecraft.resources.ResourceLocation;
 import software.bernie.geckolib.model.GeoModel;
 
 public final class MechArmorModel extends GeoModel<MechArmorItem> {
-    private static final ResourceLocation MODEL = ResourceLocation.fromNamespaceAndPath(
+    private static final ResourceLocation MODEL = new ResourceLocation(
         Mechafauna.MOD_ID,
         "geo/armor/mech_armor.geo.json"
     );
-    private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(
+    private static final ResourceLocation TEXTURE = new ResourceLocation(
         Mechafauna.MOD_ID,
         "textures/armor/mech_armor.png"
     );
-    private static final ResourceLocation ANIMATION = ResourceLocation.fromNamespaceAndPath(
+    private static final ResourceLocation ANIMATION = new ResourceLocation(
         Mechafauna.MOD_ID,
         "animations/armor/mech_armor.animation.json"
     );

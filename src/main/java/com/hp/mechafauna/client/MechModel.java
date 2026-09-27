@@ -19,8 +19,8 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4d;
 import software.bernie.geckolib.cache.object.GeoBone;
-import software.bernie.geckolib.animatable.GeoAnimatable;
-import software.bernie.geckolib.animation.AnimationState;
+import software.bernie.geckolib.core.animatable.GeoAnimatable;
+import software.bernie.geckolib.core.animation.AnimationState;
 import software.bernie.geckolib.model.GeoModel;
 
 public final class MechModel<T extends AnimatedHostileMob & GeoAnimatable> extends GeoModel<T> {
@@ -29,9 +29,9 @@ public final class MechModel<T extends AnimatedHostileMob & GeoAnimatable> exten
     private final ResourceLocation animation;
 
     public MechModel(String modelName) {
-        this.model = ResourceLocation.fromNamespaceAndPath(Mechafauna.MOD_ID, "geo/" + modelName + ".geo.json");
-        this.texture = ResourceLocation.fromNamespaceAndPath(Mechafauna.MOD_ID, "textures/entity/" + modelName + ".png");
-        this.animation = ResourceLocation.fromNamespaceAndPath(Mechafauna.MOD_ID, "animations/" + modelName + ".animation.json");
+        this.model = new ResourceLocation(Mechafauna.MOD_ID, "geo/" + modelName + ".geo.json");
+        this.texture = new ResourceLocation(Mechafauna.MOD_ID, "textures/entity/" + modelName + ".png");
+        this.animation = new ResourceLocation(Mechafauna.MOD_ID, "animations/" + modelName + ".animation.json");
     }
 
     @Override
@@ -42,7 +42,7 @@ public final class MechModel<T extends AnimatedHostileMob & GeoAnimatable> exten
     @Override
     public ResourceLocation getTextureResource(T entity) {
         if (entity instanceof MechanicalSpider spider && spider.isDeadOrDying()) {
-            return ResourceLocation.fromNamespaceAndPath(Mechafauna.MOD_ID, "textures/entity/mechanical_spider_overload.png");
+            return new ResourceLocation(Mechafauna.MOD_ID, "textures/entity/mechanical_spider_overload.png");
         }
         return this.texture;
     }

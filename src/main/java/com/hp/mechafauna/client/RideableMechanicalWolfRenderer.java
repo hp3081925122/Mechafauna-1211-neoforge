@@ -14,9 +14,9 @@ public final class RideableMechanicalWolfRenderer extends GeoEntityRenderer<Ride
     }
 
     private static final class Model extends GeoModel<RideableMechanicalWolf> {
-        private static final ResourceLocation GEO = ResourceLocation.fromNamespaceAndPath(Mechafauna.MOD_ID, "geo/mechanical_wolf.geo.json");
-        private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(Mechafauna.MOD_ID, "textures/entity/mechanical_wolf.png");
-        private static final ResourceLocation ANIMATION = ResourceLocation.fromNamespaceAndPath(Mechafauna.MOD_ID, "animations/mechanical_wolf.animation.json");
+        private static final ResourceLocation GEO = new ResourceLocation(Mechafauna.MOD_ID, "geo/mechanical_wolf.geo.json");
+        private static final ResourceLocation TEXTURE = new ResourceLocation(Mechafauna.MOD_ID, "textures/entity/mechanical_wolf.png");
+        private static final ResourceLocation ANIMATION = new ResourceLocation(Mechafauna.MOD_ID, "animations/mechanical_wolf.animation.json");
 
         @Override
         public ResourceLocation getModelResource(RideableMechanicalWolf entity) {

@@ -27,10 +27,10 @@ public final class PrismBeam extends Entity {
     }
 
     @Override
-    protected void defineSynchedData(SynchedEntityData.Builder builder) {
-        builder.define(DATA_BEAM_YAW, 0.0F);
-        builder.define(DATA_BEAM_PITCH, 0.0F);
-        builder.define(DATA_BEAM_LENGTH, 0.0F);
+    protected void defineSynchedData() {
+        this.entityData.define(DATA_BEAM_YAW, 0.0F);
+        this.entityData.define(DATA_BEAM_PITCH, 0.0F);
+        this.entityData.define(DATA_BEAM_LENGTH, 0.0F);
     }
 
     public void configure(Player owner, Vec3 origin, float yaw, float pitch, float length) {

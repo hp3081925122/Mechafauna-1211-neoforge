@@ -11,7 +11,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.Item.TooltipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import java.util.List;
@@ -54,13 +53,13 @@ public final class FlyingSaucerLocatorItem extends Item {
             return InteractionResultHolder.fail(stack);
         }
         if (!player.getAbilities().instabuild) {
-            stack.consume(1, player);
+            stack.shrink(1);
         }
         return InteractionResultHolder.consume(stack);
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, @org.jetbrains.annotations.Nullable net.minecraft.world.level.Level level, List<Component> tooltip, TooltipFlag flag) {
         tooltip.add(Component.translatable("item.mechafauna.flying_saucer_locator.tooltip.obtain"));
         tooltip.add(Component.translatable("item.mechafauna.flying_saucer_locator.tooltip.use"));
     }

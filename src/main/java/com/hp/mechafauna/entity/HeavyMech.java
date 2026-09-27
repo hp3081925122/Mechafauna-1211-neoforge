@@ -138,7 +138,7 @@ public final class HeavyMech extends MechanicalMob {
         } else if (MACHINE_GUN.equals(action)) {
             this.level().playSound(null, this.blockPosition(), SoundEvents.CROSSBOW_SHOOT, SoundSource.HOSTILE, 1.5F, 0.7F);
         } else if (MISSILE.equals(action)) {
-            this.level().playSound(null, this.blockPosition(), SoundEvents.CROSSBOW_LOADING_END.value(), SoundSource.HOSTILE, 1.5F, 0.55F);
+            this.level().playSound(null, this.blockPosition(), SoundEvents.CROSSBOW_LOADING_END, SoundSource.HOSTILE, 1.5F, 0.55F);
         }
     }
 
@@ -150,7 +150,7 @@ public final class HeavyMech extends MechanicalMob {
             this.launchPodMissileAtTick(target, actionTick);
         } else if (STOMP.equals(action) && actionTick == 21) {
             this.damageNearby(3.8, 9.0F, 0.85);
-            this.level().playSound(null, this.blockPosition(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.8F, 0.65F);
+            this.level().playSound(null, this.blockPosition(), SoundEvents.GENERIC_EXPLODE, SoundSource.HOSTILE, 1.8F, 0.65F);
             if (this.level() instanceof ServerLevel serverLevel) {
                 serverLevel.sendParticles(ParticleTypes.CLOUD, this.getX(), this.getY() + 0.1, this.getZ(), 20, 1.5, 0.12, 1.5, 0.04);
                 serverLevel.sendParticles(ParticleTypes.CRIT, this.getX(), this.getY() + 0.15, this.getZ(), 12, 1.1, 0.12, 1.1, 0.08);

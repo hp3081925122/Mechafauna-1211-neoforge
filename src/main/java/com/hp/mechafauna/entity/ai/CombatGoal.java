@@ -94,7 +94,9 @@ public final class CombatGoal extends Goal {
             double retreatLength = Math.max(1.0, retreatDistance - away.horizontalDistance() + 0.5);
             net.minecraft.world.phys.Vec3 destination = this.mob.position().add(away.normalize().scale(retreatLength));
             if (this.pathRefreshTicks-- <= 0 || this.mob.getNavigation().isDone()) {
-                this.mob.getNavigation().moveTo(destination.x, destination.y, destination.z, 0, this.mob.getChaseSpeed());
+                this.mob.getNavigation().moveTo(
+                    this.mob.getNavigation().createPath(destination.x, destination.y, destination.z, 0),
+                    this.mob.getChaseSpeed());
                 this.pathRefreshTicks = 8;
             }
         } else if (distance > this.mob.getCombatHoldDistance() || !this.mob.hasLineOfSight(target)) {

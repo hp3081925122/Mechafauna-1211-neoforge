@@ -21,12 +21,11 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.Explosion;
-import net.minecraft.world.level.ExplosionDamageCalculator;
 import net.minecraft.world.phys.AABB;
 import org.slf4j.Logger;
 
 public final class MechanicalSpider extends MechanicalMob {
+    private static final double ITEM_THROW_GRAVITY = 0.08;
     private static final String BITE = "bite";
     private static final String DEATH = "overload";
     private static final int BITE_DURATION_TICKS = 20;
@@ -41,26 +40,6 @@ public final class MechanicalSpider extends MechanicalMob {
     private static final double KNOCKBACK_RESISTANCE = 0.20;
     private static final double CHAIN_TRIGGER_RADIUS = 5.0;
     private static final Logger LOGGER = LogUtils.getLogger();
-    private static final ExplosionDamageCalculator THROWN_EXPLOSION_DAMAGE_CALCULATOR = new ExplosionDamageCalculator() {
-        @Override
-        public boolean shouldDamageEntity(Explosion explosion, Entity entity) {
-            if (entity instanceof Player) {
-                LOGGER.debug("Thrown mechanical spider explosion excluded player damage target={}", entity.getId());
-                return false;
-            }
-            return super.shouldDamageEntity(explosion, entity);
-        }
-
-        @Override
-        public float getKnockbackMultiplier(Entity entity) {
-            return entity instanceof Player ? 0.0F : super.getKnockbackMultiplier(entity);
-        }
-
-        @Override
-        public float getEntityDamageAmount(Explosion explosion, Entity entity) {
-            return super.getEntityDamageAmount(explosion, entity) * THROWN_EXPLOSION_DAMAGE_MULTIPLIER;
-        }
-    };
     private boolean overloadExplosionTriggered;
     private int successfulBites;
     private boolean selfDestructing;
@@ -109,11 +88,11 @@ public final class MechanicalSpider extends MechanicalMob {
     public void travel(Vec3 input) {
         if (this.thrownItemSpider && !this.selfDestructing) {
             if (!this.level().isClientSide && this.thrownItemTicks == 0) {
-                LOGGER.debug("Mechanical spider item flight started entity={} position={} velocity={} gravity={}", this.getId(), this.position(), this.getDeltaMovement(), this.getGravity());
+                LOGGER.debug("Mechanical spider item flight started entity={} position={} velocity={} gravity={}", this.getId(), this.position(), this.getDeltaMovement(), ITEM_THROW_GRAVITY);
             }
             this.move(MoverType.SELF, this.getDeltaMovement());
             Vec3 velocity = this.getDeltaMovement();
-            this.setDeltaMovement(velocity.x * 0.91, (velocity.y - this.getGravity()) * 0.98, velocity.z * 0.91);
+            this.setDeltaMovement(velocity.x * 0.91, (velocity.y - ITEM_THROW_GRAVITY) * 0.98, velocity.z * 0.91);
             return;
         }
         super.travel(input);
@@ -197,7 +176,7 @@ public final class MechanicalSpider extends MechanicalMob {
         if (!this.selfDestructing && !this.isDeadOrDying()) {
             this.level().playSound(player, this.getX(), this.getY(), this.getZ(), SoundEvents.FLINTANDSTEEL_USE, this.getSoundSource(), 1.0F, this.random.nextFloat() * 0.4F + 0.8F);
             if (!this.level().isClientSide && this.primeForDetonation(player)) {
-                item.hurtAndBreak(1, player, LivingEntity.getSlotForHand(hand));
+                item.hurtAndBreak(1, player, living -> living.broadcastBreakEvent(hand));
             }
         }
         return InteractionResult.sidedSuccess(this.level().isClientSide);
@@ -285,27 +264,6 @@ public final class MechanicalSpider extends MechanicalMob {
         return true;
     }
 
-    private ExplosionDamageCalculator summonerExplosionCalculator() {
-        if (this.summonerUUID == null) {
-            return null;
-        }
-        UUID summoner = this.summonerUUID;
-        return new ExplosionDamageCalculator() {
-            @Override
-            public boolean shouldDamageEntity(Explosion explosion, Entity entity) {
-                return !summoner.equals(entity.getUUID()) && !samePlayerSummon(MechanicalSpider.this, entity)
-                    && super.shouldDamageEntity(explosion, entity);
-            }
-
-            @Override
-            public float getKnockbackMultiplier(Entity entity) {
-                return summoner.equals(entity.getUUID()) || samePlayerSummon(MechanicalSpider.this, entity)
-                    ? 0.0F
-                    : super.getKnockbackMultiplier(entity);
-            }
-        };
-    }
-
     @Override
     protected void tickDeath() {
         this.deathTime++;
@@ -341,12 +299,19 @@ public final class MechanicalSpider extends MechanicalMob {
                 }
             }
             float explosionRadius = this.thrownItemSpider ? THROWN_EXPLOSION_RADIUS : EXPLOSION_RADIUS;
-            ExplosionDamageCalculator calculator = this.thrownItemSpider ? THROWN_EXPLOSION_DAMAGE_CALCULATOR : this.summonerExplosionCalculator();
             if (this.thrownItemSpider) {
                 LOGGER.debug("Thrown mechanical spider detonating entity={} radius={} rangeMultiplier=1.0 damageMultiplier={}", this.getId(), explosionRadius, THROWN_EXPLOSION_DAMAGE_MULTIPLIER);
             }
-            ExplosionEffects.explode(this.level(), this, null, calculator,
-                this.getX(), this.getY() + 0.3, this.getZ(), explosionRadius);
+            UUID summoner = this.summonerUUID;
+            ExplosionEffects.Policy policy = this.thrownItemSpider
+                ? new ExplosionEffects.Policy(entity -> !(entity instanceof Player),
+                    entity -> THROWN_EXPLOSION_DAMAGE_MULTIPLIER, entity -> entity instanceof Player ? 0.0 : 1.0)
+                : new ExplosionEffects.Policy(entity -> summoner == null
+                    || (!summoner.equals(entity.getUUID()) && !samePlayerSummon(this, entity)),
+                    entity -> 1.0, entity -> summoner != null
+                        && (summoner.equals(entity.getUUID()) || samePlayerSummon(this, entity)) ? 0.0 : 1.0);
+            ExplosionEffects.explode(this.level(), this, null,
+                this.getX(), this.getY() + 0.3, this.getZ(), explosionRadius, policy);
         }
         if (this.deathTime >= DEATH_CLEANUP_TICKS && !this.level().isClientSide && !this.isRemoved()) {
             LOGGER.debug("Mechanical spider death animation cleanup entity={} deathTime={} animationLengthTicks={}", this.getId(), this.deathTime, DEATH_ANIMATION_TICKS);

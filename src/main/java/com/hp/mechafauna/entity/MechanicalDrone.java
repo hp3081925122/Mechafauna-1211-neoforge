@@ -29,10 +29,10 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.entity.ai.navigation.FlyingPathNavigation;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
-import software.bernie.geckolib.animation.AnimatableManager;
-import software.bernie.geckolib.animation.AnimationController;
-import software.bernie.geckolib.animation.PlayState;
-import software.bernie.geckolib.animation.RawAnimation;
+import software.bernie.geckolib.core.animation.AnimatableManager;
+import software.bernie.geckolib.core.animation.AnimationController;
+import software.bernie.geckolib.core.object.PlayState;
+import software.bernie.geckolib.core.animation.RawAnimation;
 
 public final class MechanicalDrone extends MechanicalMob implements OwnableEntity {
     private static final String GUN = "gun";
@@ -51,9 +51,9 @@ public final class MechanicalDrone extends MechanicalMob implements OwnableEntit
     }
 
     @Override
-    protected void defineSynchedData(SynchedEntityData.Builder builder) {
-        super.defineSynchedData(builder);
-        builder.define(DATA_OWNER_UUID, Optional.empty());
+    protected void defineSynchedData() {
+        super.defineSynchedData();
+        this.entityData.define(DATA_OWNER_UUID, Optional.empty());
     }
 
     @Override
@@ -122,6 +122,14 @@ public final class MechanicalDrone extends MechanicalMob implements OwnableEntit
     @Override
     protected boolean canAddPassenger(Entity passenger) {
         return this.isOwnedDrone() && passenger instanceof Player player && this.isOwnedBy(player) && super.canAddPassenger(passenger);
+    }
+
+    @Override
+    protected void positionRider(Entity passenger, Entity.MoveFunction moveFunction) {
+        if (this.hasPassenger(passenger)) {
+            Vec3 attachment = new Vec3(0.0, -0.46, -0.2875).yRot(-this.getYRot() * Mth.DEG_TO_RAD);
+            moveFunction.accept(passenger, this.getX() + attachment.x, this.getY() + attachment.y, this.getZ() + attachment.z);
+        }
     }
 
     @Override

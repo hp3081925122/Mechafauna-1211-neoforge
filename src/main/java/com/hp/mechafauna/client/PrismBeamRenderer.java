@@ -40,6 +40,6 @@ public final class PrismBeamRenderer extends EntityRenderer<PrismBeam> {
 
     @Override
     public ResourceLocation getTextureLocation(PrismBeam entity) {
-        return ResourceLocation.fromNamespaceAndPath("mechafauna", "textures/block/prism_core.png");
+        return new ResourceLocation("mechafauna", "textures/block/prism_core.png");
     }
 }

@@ -1,6 +1,7 @@
 package com.hp.mechafauna.entity;
 
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.util.Mth;
 import org.joml.Matrix4d;
 import org.joml.Quaternionf;
 import org.joml.Vector3d;
@@ -43,13 +44,13 @@ public record WeaponMount(String modelName, String yawBone, String pitchBone, Ve
         Vec3 horizontal = localTarget.subtract(this.yawPivot);
         double radius = horizontal.horizontalDistance();
         double yaw = radius < 1.0E-6 ? 0.0 : Math.atan2(-horizontal.x, -horizontal.z)
-            + Math.asin(Math.clamp((this.muzzle.x - this.yawPivot.x) / radius, -1.0, 1.0));
+            + Math.asin(Mth.clamp((this.muzzle.x - this.yawPivot.x) / radius, -1.0, 1.0));
         Matrix4d yawTransform = new Matrix4d().translate(this.yawPivot.x, this.yawPivot.y, this.yawPivot.z)
             .rotateY(yaw).translate(-this.yawPivot.x, -this.yawPivot.y, -this.yawPivot.z);
         Vec3 vertical = transform(new Matrix4d(yawTransform).invert(), localTarget).subtract(this.pitchPivot);
         double verticalRadius = Math.hypot(vertical.y, vertical.z);
         double pitch = verticalRadius < 1.0E-6 ? 0.0 : Math.atan2(vertical.y, -vertical.z)
-            - Math.asin(Math.clamp((this.muzzle.y - this.pitchPivot.y) / verticalRadius, -1.0, 1.0));
+            - Math.asin(Mth.clamp((this.muzzle.y - this.pitchPivot.y) / verticalRadius, -1.0, 1.0));
         Matrix4d transform = new Matrix4d(parentToWorld).mul(yawTransform)
             .translate(this.pitchPivot.x, this.pitchPivot.y, this.pitchPivot.z).rotateX(pitch)
             .translate(-this.pitchPivot.x, -this.pitchPivot.y, -this.pitchPivot.z);

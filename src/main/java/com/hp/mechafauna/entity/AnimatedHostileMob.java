@@ -28,12 +28,12 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
 import software.bernie.geckolib.animatable.GeoEntity;
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.animation.AnimatableManager;
-import software.bernie.geckolib.animation.AnimationController;
-import software.bernie.geckolib.animation.AnimationState;
-import software.bernie.geckolib.animation.PlayState;
-import software.bernie.geckolib.animation.RawAnimation;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.core.animation.AnimatableManager;
+import software.bernie.geckolib.core.animation.AnimationController;
+import software.bernie.geckolib.core.animation.AnimationState;
+import software.bernie.geckolib.core.object.PlayState;
+import software.bernie.geckolib.core.animation.RawAnimation;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 public abstract class AnimatedHostileMob extends Monster implements GeoEntity {
@@ -109,10 +109,10 @@ public abstract class AnimatedHostileMob extends Monster implements GeoEntity {
     }
 
     @Override
-    protected void defineSynchedData(SynchedEntityData.Builder builder) {
-        super.defineSynchedData(builder);
-        builder.define(DATA_ACTION, "");
-        builder.define(DATA_TARGET_ID, -1);
+    protected void defineSynchedData() {
+        super.defineSynchedData();
+        this.entityData.define(DATA_ACTION, "");
+        this.entityData.define(DATA_TARGET_ID, -1);
     }
 
     @Override
@@ -303,7 +303,7 @@ public abstract class AnimatedHostileMob extends Monster implements GeoEntity {
         this.entityData.set(DATA_ACTION, "");
         this.activeActionTicks = 0;
         if (interrupted) {
-            this.stopTriggeredAnim("action", action);
+            this.triggerAnim("action", "stop_" + action);
         }
     }
 

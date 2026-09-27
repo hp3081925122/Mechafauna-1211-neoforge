@@ -19,11 +19,11 @@ public final class FlyingSaucerRenderer extends GeoEntityRenderer<FlyingSaucerBo
     static final RenderType GLOW = RenderType.create("mechafauna_saucer_laser",
         DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.QUADS, 8192, false, false,
         RenderType.CompositeState.builder()
-            .setShaderState(RenderStateShard.POSITION_COLOR_SHADER)
-            .setTransparencyState(RenderStateShard.LIGHTNING_TRANSPARENCY)
-            .setCullState(RenderStateShard.NO_CULL)
-            .setWriteMaskState(RenderStateShard.COLOR_WRITE)
-            .setDepthTestState(RenderStateShard.LEQUAL_DEPTH_TEST)
+            .setShaderState(MechRenderStateAccess.POSITION_COLOR_SHADER)
+            .setTransparencyState(MechRenderStateAccess.LIGHTNING_TRANSPARENCY)
+            .setCullState(MechRenderStateAccess.NO_CULL)
+            .setWriteMaskState(MechRenderStateAccess.COLOR_WRITE)
+            .setDepthTestState(MechRenderStateAccess.LEQUAL_DEPTH_TEST)
             .createCompositeState(false));
     private static final Vec3 SIDE = new Vec3(1.0, 0.0, 0.0);
     private static final Vec3 FORWARD = new Vec3(0.0, 0.0, 1.0);
@@ -391,7 +391,8 @@ public final class FlyingSaucerRenderer extends GeoEntityRenderer<FlyingSaucerBo
 
     private static void vertex(VertexConsumer vertices, Matrix4f matrix, Vec3 point,
                                float red, float green, float blue, float alpha) {
-        vertices.addVertex(matrix, (float)point.x, (float)point.y, (float)point.z).setColor(red, green, blue, alpha);
+        vertices.vertex(matrix, (float)point.x, (float)point.y, (float)point.z).color(red, green, blue, alpha);
+        vertices.endVertex();
     }
 
     private void renderDeathExplosion(VertexConsumer vertices, Matrix4f matrix, FlyingSaucerBoss entity, float partialTick) {

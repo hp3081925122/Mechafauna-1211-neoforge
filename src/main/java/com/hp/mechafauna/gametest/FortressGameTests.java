@@ -16,19 +16,20 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.SpawnData;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.structures.JigsawStructure;
-import net.neoforged.neoforge.common.util.FakePlayerFactory;
-import net.neoforged.neoforge.gametest.GameTestHolder;
-import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
+import net.minecraftforge.common.util.FakePlayerFactory;
+import net.minecraftforge.gametest.GameTestHolder;
+import net.minecraftforge.gametest.PrefixGameTestTemplate;
 
 @GameTestHolder(Mechafauna.MOD_ID)
 @PrefixGameTestTemplate(false)
 public final class FortressGameTests {
-    private static final ResourceLocation STRUCTURE = ResourceLocation.fromNamespaceAndPath(Mechafauna.MOD_ID, "heavy_mech_fortress");
+    private static final ResourceLocation STRUCTURE = new ResourceLocation(Mechafauna.MOD_ID, "heavy_mech_fortress");
 
     private FortressGameTests() {
     }
@@ -68,7 +69,7 @@ public final class FortressGameTests {
                 var spawner = (SpawnerBlockEntity) level.getBlockEntity(pos);
                 helper.assertTrue(spawner != null, "Missing spawner during spawn test");
                 player.moveTo(pos.getX() + 2.5, pos.getY(), pos.getZ() + 2.5, 0, 0);
-                CompoundTag nbt = spawner.saveWithoutMetadata(level.registryAccess());
+                CompoundTag nbt = spawner.saveWithoutMetadata();
                 nbt.putShort("Delay", (short) 0);
                 spawner.getSpawner().load(level, pos, nbt);
                 for (int attempt = 0; attempt < 100; attempt++) {
@@ -100,18 +101,18 @@ public final class FortressGameTests {
         var start = structure.findGenerationPoint(context);
         helper.assertTrue(start.isPresent() && !start.orElseThrow().getPiecesBuilder().isEmpty(),
             "Fortress jigsaw generation produced no pieces");
-        var mechs = helper.getEntities(ModEntities.HEAVY_MECH.get());
+        var mechs = StructureEntityTestUtil.getEntities(helper, ModEntities.HEAVY_MECH.get(), STRUCTURE);
         helper.assertTrue(mechs.size() == 1, "Fortress must contain exactly one heavy mech");
-        var mech = mechs.getFirst();
+        var mech = mechs.get(0);
         helper.assertTrue(mech.isPersistenceRequired(), "Fortress guard must not naturally despawn");
         helper.assertTrue(level.noCollision(mech.getBoundingBox()), "Fortress guard intersects the building");
-        var crawlers = helper.getEntities(ModEntities.FLAME_CRAWLER.get());
+        var crawlers = StructureEntityTestUtil.getEntities(helper, ModEntities.FLAME_CRAWLER.get(), STRUCTURE);
         helper.assertTrue(crawlers.size() == 2, "The second floor must contain exactly two flame crawlers");
         for (var crawler : crawlers) {
             helper.assertTrue(crawler.isPersistenceRequired(), "Fixed flame crawlers must not naturally despawn");
             helper.assertTrue(level.noCollision(crawler.getBoundingBox()), "A fixed flame crawler intersects the building");
         }
-        helper.assertTrue(helper.getEntities(ModEntities.MECHANICAL_TANK.get()).isEmpty(), "Fortress must not contain a tank");
+        helper.assertTrue(StructureEntityTestUtil.getEntities(helper, ModEntities.MECHANICAL_TANK.get(), STRUCTURE).isEmpty(), "Fortress must not contain a tank");
         mech.setNoAi(true);
 
         int spawners = 0;
@@ -125,8 +126,9 @@ public final class FortressGameTests {
                 spawners++;
                 helper.assertTrue(level.getBlockEntity(pos) instanceof SpawnerBlockEntity, "Spawner block entity is missing");
                 var spawner = (SpawnerBlockEntity) level.getBlockEntity(pos);
-                CompoundTag nbt = spawner.saveWithoutMetadata(level.registryAccess());
-                SpawnData data = SpawnData.CODEC.parse(NbtOps.INSTANCE, nbt.getCompound("SpawnData")).getOrThrow();
+                CompoundTag nbt = spawner.saveWithoutMetadata();
+                SpawnData data = SpawnData.CODEC.parse(NbtOps.INSTANCE, nbt.getCompound("SpawnData"))
+                    .getOrThrow(false, message -> { throw new IllegalStateException(message); });
                 String spawnId = data.getEntityToSpawn().getString("id");
                 spawnIds.add(spawnId);
                 helper.assertTrue(data.getCustomSpawnRules().isPresent(), "Lit fortress requires custom spawner light rules");
@@ -138,7 +140,10 @@ public final class FortressGameTests {
                     helper.assertTrue(data.getCustomSpawnRules().orElseThrow().skyLightLimit().maxInclusive() == 7,
                         "Prism Sentinel sky light limit is incorrect");
                 } else {
-                    helper.assertTrue(data.getCustomSpawnRules().orElseThrow().isValidPosition(pos, level), "Spawner rejects fortress lighting");
+                    var rules = data.getCustomSpawnRules().orElseThrow();
+                    helper.assertTrue(rules.blockLightLimit().isValueInRange(level.getMaxLocalRawBrightness(pos))
+                        && rules.skyLightLimit().isValueInRange(level.getBrightness(LightLayer.SKY, pos)),
+                        "Spawner rejects fortress lighting");
                     helper.assertTrue(nbt.getShort("SpawnCount") == 1 && nbt.getShort("MaxNearbyEntities") == 3,
                         "Spawner population limits are incorrect");
                     helper.assertTrue(nbt.getShort("MinSpawnDelay") == 500 && nbt.getShort("MaxSpawnDelay") == 800,
@@ -148,8 +153,9 @@ public final class FortressGameTests {
                 chests++;
                 helper.assertTrue(level.getBlockEntity(pos) instanceof ChestBlockEntity, "Loot chest block entity is missing");
                 var chest = (ChestBlockEntity) level.getBlockEntity(pos);
-                helper.assertTrue(chest.getLootTable() != null, "Loot table was not retained during placement");
-                var loot = chest.getLootTable().location();
+                String lootTableId = chest.saveWithoutMetadata().getString("LootTable");
+                ResourceLocation loot = ResourceLocation.tryParse(lootTableId);
+                helper.assertTrue(loot != null, "Loot table was not retained during placement");
                 helper.assertTrue(loot.getNamespace().equals(Mechafauna.MOD_ID), "Unexpected fortress loot table");
                 if (loot.getPath().equals("chests/fortress_armory")) {
                     armoryChests++;
@@ -167,4 +173,5 @@ public final class FortressGameTests {
         helper.assertBlockPresent(Blocks.STONE_BRICK_STAIRS, new BlockPos(39, 11, 24));
         helper.succeed();
     }
+
 }

@@ -13,32 +13,25 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.ThrowableItemProjectile;
-import net.neoforged.neoforge.entity.PartEntity;
+import net.minecraftforge.entity.PartEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.ExplosionDamageCalculator;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import org.slf4j.Logger;
 import software.bernie.geckolib.animatable.GeoEntity;
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.animation.AnimatableManager;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.core.animation.AnimatableManager;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 public final class MechProjectile extends ThrowableItemProjectile implements GeoEntity {
     private static final Logger LOGGER = LogUtils.getLogger();
-    private static final ExplosionDamageCalculator PROJECTILE_EXPLOSION_CALCULATOR = new ExplosionDamageCalculator() {
-        @Override
-        public float getKnockbackMultiplier(Entity entity) {
-            return 0.5F;
-        }
-    };
     private static final ResourceKey<DamageType> MILITARY_DRONE = ResourceKey.create(
-        Registries.DAMAGE_TYPE, ResourceLocation.fromNamespaceAndPath(Mechafauna.MOD_ID, "military_drone"));
+        Registries.DAMAGE_TYPE, new ResourceLocation(Mechafauna.MOD_ID, "military_drone"));
     private static final ResourceKey<DamageType> REINFORCED_BULLET = ResourceKey.create(
-        Registries.DAMAGE_TYPE, ResourceLocation.fromNamespaceAndPath(Mechafauna.MOD_ID, "reinforced_bullet"));
+        Registries.DAMAGE_TYPE, new ResourceLocation(Mechafauna.MOD_ID, "reinforced_bullet"));
     private final AnimatableInstanceCache animationCache = GeckoLibUtil.createInstanceCache(this);
     private float impactDamage;
     private boolean bypassHurtCooldown;
@@ -116,8 +109,8 @@ public final class MechProjectile extends ThrowableItemProjectile implements Geo
     }
 
     @Override
-    protected double getDefaultGravity() {
-        return 0.0;
+    protected float getGravity() {
+        return 0.0F;
     }
 
     @Override
@@ -153,7 +146,7 @@ public final class MechProjectile extends ThrowableItemProjectile implements Geo
                 if (damageApplied && this.igniteOnHit) {
                     Entity burningTarget = target instanceof PartEntity<?> part ? part.getParent() : target;
                     if (burningTarget instanceof LivingEntity livingTarget) {
-                        livingTarget.igniteForSeconds(2.0F);
+                        livingTarget.setSecondsOnFire(2);
                     }
                 }
                 LOGGER.debug("Mech laser collision projectile={} target={} damage={} applied={}", this.getId(), hit.getEntity().getId(), this.impactDamage, damageApplied);
@@ -180,8 +173,9 @@ public final class MechProjectile extends ThrowableItemProjectile implements Geo
             }
             float radius = this.getItem().is(Items.FIREWORK_ROCKET) ? 2.4F : 2.70F;
             net.minecraft.world.entity.Entity explosionSource = this.getOwner() == null ? this : this.getOwner();
+            ExplosionEffects.Policy policy = new ExplosionEffects.Policy(entity -> true, entity -> 1.0, entity -> 0.5);
             ExplosionEffects.explode(this.level(), explosionSource, this.damageSources().explosion(this, this.getOwner()),
-                PROJECTILE_EXPLOSION_CALCULATOR, this.getX(), this.getY(), this.getZ(), radius);
+                this.getX(), this.getY(), this.getZ(), radius, policy);
             this.discard();
         }
     }
@@ -189,7 +183,7 @@ public final class MechProjectile extends ThrowableItemProjectile implements Geo
     private DamageSource impactSource() {
         if (this.bypassHurtCooldown) {
             ResourceKey<DamageType> damageType = this.reinforcedBulletDamage ? REINFORCED_BULLET : MILITARY_DRONE;
-            return this.damageSources().source(damageType, this, this.getOwner());
+            return new DamageSource(this.level().registryAccess().registryOrThrow(Registries.DAMAGE_TYPE).getHolderOrThrow(damageType), this, this.getOwner());
         }
         return this.damageSources().thrown(this, this.getOwner());
     }

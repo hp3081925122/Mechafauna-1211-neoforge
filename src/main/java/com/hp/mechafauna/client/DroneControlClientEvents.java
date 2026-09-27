@@ -4,18 +4,19 @@ import com.mojang.blaze3d.platform.InputConstants;
 import com.hp.mechafauna.Mechafauna;
 import com.hp.mechafauna.entity.MechanicalDrone;
 import com.hp.mechafauna.network.DroneControlPayload;
+import com.hp.mechafauna.network.ModNetwork;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.client.event.InputEvent;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.TickEvent.ClientTickEvent;
+import net.minecraftforge.client.event.InputEvent;
 import org.lwjgl.glfw.GLFW;
 
-@EventBusSubscriber(modid = Mechafauna.MOD_ID, bus = EventBusSubscriber.Bus.GAME, value = Dist.CLIENT)
+@EventBusSubscriber(modid = Mechafauna.MOD_ID, bus = EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
 public final class DroneControlClientEvents {
     private static int lastDroneId = -1;
     private static boolean lastAscend;
@@ -27,7 +28,10 @@ public final class DroneControlClientEvents {
     }
 
     @SubscribeEvent
-    public static void onClientTick(ClientTickEvent.Post event) {
+    public static void onClientTick(ClientTickEvent event) {
+        if (event.phase != TickEvent.Phase.END) {
+            return;
+        }
         Minecraft minecraft = Minecraft.getInstance();
         LocalPlayer player = minecraft.player;
         if (player != null && player.getVehicle() instanceof MechanicalDrone drone && drone.isOwnedBy(player)) {
@@ -38,7 +42,7 @@ public final class DroneControlClientEvents {
             drone.setManualControls(ascend, descend, firing);
             if (lastDroneId != drone.getId() || ascend != lastAscend || descend != lastDescend || firing != lastFiring) {
                 if (minecraft.getConnection() != null) {
-                    PacketDistributor.sendToServer(new DroneControlPayload(drone.getId(), ascend, descend, firing));
+                    ModNetwork.CHANNEL.sendToServer(new DroneControlPayload(drone.getId(), ascend, descend, firing));
                 }
                 lastDroneId = drone.getId();
                 lastAscend = ascend;
@@ -49,7 +53,7 @@ public final class DroneControlClientEvents {
         }
         if (lastDroneId != -1) {
             if (minecraft.getConnection() != null) {
-                PacketDistributor.sendToServer(new DroneControlPayload(lastDroneId, false, false, false));
+                ModNetwork.CHANNEL.sendToServer(new DroneControlPayload(lastDroneId, false, false, false));
             }
             lastDroneId = -1;
             lastAscend = false;

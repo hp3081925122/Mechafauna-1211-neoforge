@@ -30,10 +30,10 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import software.bernie.geckolib.animation.AnimatableManager;
-import software.bernie.geckolib.animation.AnimationController;
-import software.bernie.geckolib.animation.PlayState;
-import software.bernie.geckolib.animation.RawAnimation;
+import software.bernie.geckolib.core.animation.AnimatableManager;
+import software.bernie.geckolib.core.animation.AnimationController;
+import software.bernie.geckolib.core.object.PlayState;
+import software.bernie.geckolib.core.animation.RawAnimation;
 
 public final class MilitaryDrone extends MechanicalMob implements OwnableEntity {
     private static final String GUN = "gun";
@@ -68,9 +68,9 @@ public final class MilitaryDrone extends MechanicalMob implements OwnableEntity 
     }
 
     @Override
-    protected void defineSynchedData(SynchedEntityData.Builder builder) {
-        super.defineSynchedData(builder);
-        builder.define(DATA_OWNER_UUID, Optional.empty());
+    protected void defineSynchedData() {
+        super.defineSynchedData();
+        this.entityData.define(DATA_OWNER_UUID, Optional.empty());
     }
 
     public void setOwner(Player owner) {
@@ -87,6 +87,14 @@ public final class MilitaryDrone extends MechanicalMob implements OwnableEntity 
     public boolean isOwnedBy(Entity entity) {
         UUID owner = this.getOwnerUUID();
         return owner != null && owner.equals(entity.getUUID());
+    }
+
+    @Override
+    protected void positionRider(Entity passenger, Entity.MoveFunction moveFunction) {
+        if (this.hasPassenger(passenger)) {
+            Vec3 attachment = new Vec3(0.0, -0.46, -0.2875).yRot(-this.getYRot() * Mth.DEG_TO_RAD);
+            moveFunction.accept(passenger, this.getX() + attachment.x, this.getY() + attachment.y, this.getZ() + attachment.z);
+        }
     }
 
     @Override

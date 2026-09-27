@@ -1,25 +1,40 @@
 package com.hp.mechafauna.particle;
 
 import com.hp.mechafauna.registry.ModParticles;
+import com.mojang.brigadier.StringReader;
 import com.mojang.serialization.Codec;
-import com.mojang.serialization.MapCodec;
-import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleType;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.FriendlyByteBuf;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
 public record ExplosionParticleOptions(float radius) implements ParticleOptions {
-    public static final MapCodec<ExplosionParticleOptions> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-        Codec.FLOAT.fieldOf("radius").forGetter(ExplosionParticleOptions::radius)
-    ).apply(instance, ExplosionParticleOptions::new));
-    public static final StreamCodec<RegistryFriendlyByteBuf, ExplosionParticleOptions> STREAM_CODEC = StreamCodec.composite(
-        ByteBufCodecs.FLOAT, ExplosionParticleOptions::radius, ExplosionParticleOptions::new
-    );
+    public static final Codec<ExplosionParticleOptions> CODEC = Codec.FLOAT.xmap(ExplosionParticleOptions::new, ExplosionParticleOptions::radius);
+    public static final ParticleOptions.Deserializer<ExplosionParticleOptions> DESERIALIZER = new ParticleOptions.Deserializer<>() {
+        @Override
+        public ExplosionParticleOptions fromCommand(ParticleType<ExplosionParticleOptions> type, StringReader reader) throws CommandSyntaxException {
+            return new ExplosionParticleOptions(reader.readFloat());
+        }
+
+        @Override
+        public ExplosionParticleOptions fromNetwork(ParticleType<ExplosionParticleOptions> type, FriendlyByteBuf buffer) {
+            return new ExplosionParticleOptions(buffer.readFloat());
+        }
+    };
 
     @Override
     public ParticleType<ExplosionParticleOptions> getType() {
         return ModParticles.SCALED_EXPLOSION.get();
+    }
+
+    @Override
+    public void writeToNetwork(FriendlyByteBuf buffer) {
+        buffer.writeFloat(this.radius);
+    }
+
+    @Override
+    public String writeToString() {
+        return BuiltInRegistries.PARTICLE_TYPE.getKey(this.getType()) + " " + this.radius;
     }
 }

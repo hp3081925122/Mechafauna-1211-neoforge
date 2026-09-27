@@ -16,10 +16,10 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
-import software.bernie.geckolib.animation.AnimatableManager;
-import software.bernie.geckolib.animation.AnimationController;
-import software.bernie.geckolib.animation.PlayState;
-import software.bernie.geckolib.animation.RawAnimation;
+import software.bernie.geckolib.core.animation.AnimatableManager;
+import software.bernie.geckolib.core.animation.AnimationController;
+import software.bernie.geckolib.core.object.PlayState;
+import software.bernie.geckolib.core.animation.RawAnimation;
 
 public final class MechanicalTank extends MechanicalMob {
     private static final String FIRE = "fire";
@@ -127,7 +127,7 @@ public final class MechanicalTank extends MechanicalMob {
     }
 
     public static AttributeSupplier.Builder createAttributes() {
-        return createAttributes(MAX_HEALTH, 0.38, 10.0, 36.0, KNOCKBACK_RESISTANCE).add(Attributes.SCALE, MODEL_SCALE);
+        return createAttributes(MAX_HEALTH, 0.38, 10.0, 36.0, KNOCKBACK_RESISTANCE);
     }
 
     @Override
@@ -202,7 +202,7 @@ public final class MechanicalTank extends MechanicalMob {
 
     @Override
     protected void onActionStarted(String action, LivingEntity target) {
-        this.level().playSound(null, this.blockPosition(), SoundEvents.CROSSBOW_LOADING_END.value(), SoundSource.HOSTILE, 1.0F, 0.65F);
+        this.level().playSound(null, this.blockPosition(), SoundEvents.CROSSBOW_LOADING_END, SoundSource.HOSTILE, 1.0F, 0.65F);
     }
 
     @Override

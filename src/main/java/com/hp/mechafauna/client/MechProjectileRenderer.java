@@ -46,20 +46,20 @@ public final class MechProjectileRenderer extends GeoEntityRenderer<MechProjecti
     }
 
     @Override
-    protected void applyRotations(MechProjectile entity, PoseStack poseStack, float ageInTicks, float rotationYaw, float partialTick, float nativeScale) {
+    protected void applyRotations(MechProjectile entity, PoseStack poseStack, float ageInTicks, float rotationYaw, float partialTick) {
         float projectileYaw = Mth.rotLerp(partialTick, entity.yRotO, entity.getYRot());
         float projectilePitch = Mth.rotLerp(partialTick, entity.xRotO, entity.getXRot());
         poseStack.mulPose(WeaponMount.projectileRotation(projectileYaw, projectilePitch));
     }
 
     private static void renderLaserLayer(VertexConsumer vertices, Matrix4f matrix, float halfWidth, float halfLength, float red, float green, float blue, float alpha) {
-        vertices.addVertex(matrix, -halfWidth, 0.0F, -halfLength).setColor(red, green, blue, alpha);
-        vertices.addVertex(matrix, halfWidth, 0.0F, -halfLength).setColor(red, green, blue, alpha);
-        vertices.addVertex(matrix, halfWidth, 0.0F, halfLength).setColor(red, green, blue, alpha);
-        vertices.addVertex(matrix, -halfWidth, 0.0F, halfLength).setColor(red, green, blue, alpha);
-        vertices.addVertex(matrix, 0.0F, -halfWidth, -halfLength).setColor(red, green, blue, alpha);
-        vertices.addVertex(matrix, 0.0F, halfWidth, -halfLength).setColor(red, green, blue, alpha);
-        vertices.addVertex(matrix, 0.0F, halfWidth, halfLength).setColor(red, green, blue, alpha);
-        vertices.addVertex(matrix, 0.0F, -halfWidth, halfLength).setColor(red, green, blue, alpha);
+        vertices.vertex(matrix, -halfWidth, 0.0F, -halfLength).color(red, green, blue, alpha).endVertex();
+        vertices.vertex(matrix, halfWidth, 0.0F, -halfLength).color(red, green, blue, alpha).endVertex();
+        vertices.vertex(matrix, halfWidth, 0.0F, halfLength).color(red, green, blue, alpha).endVertex();
+        vertices.vertex(matrix, -halfWidth, 0.0F, halfLength).color(red, green, blue, alpha).endVertex();
+        vertices.vertex(matrix, 0.0F, -halfWidth, -halfLength).color(red, green, blue, alpha).endVertex();
+        vertices.vertex(matrix, 0.0F, halfWidth, -halfLength).color(red, green, blue, alpha).endVertex();
+        vertices.vertex(matrix, 0.0F, halfWidth, halfLength).color(red, green, blue, alpha).endVertex();
+        vertices.vertex(matrix, 0.0F, -halfWidth, halfLength).color(red, green, blue, alpha).endVertex();
     }
 }

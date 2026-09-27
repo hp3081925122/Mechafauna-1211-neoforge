@@ -72,10 +72,10 @@ public final class SaucerLaserStrike extends Entity {
     }
 
     @Override
-    protected void defineSynchedData(SynchedEntityData.Builder builder) {
-        builder.define(DATA_IMPACT, new Vector3f());
-        builder.define(DATA_TICK, 0);
-        builder.define(DATA_OWNER, Optional.empty());
+    protected void defineSynchedData() {
+        this.entityData.define(DATA_IMPACT, new Vector3f());
+        this.entityData.define(DATA_TICK, 0);
+        this.entityData.define(DATA_OWNER, Optional.empty());
     }
 
     @Override
@@ -105,12 +105,12 @@ public final class SaucerLaserStrike extends Entity {
                 origin.x + FlyingSaucerBoss.LASER_BEAM_RADIUS, origin.y, origin.z + FlyingSaucerBoss.LASER_BEAM_RADIUS);
             for (LivingEntity victim : this.level().getEntitiesOfClass(LivingEntity.class, column, this::canDamage)) {
                 if (victim.hurt(this.damageSource(), FlyingSaucerBoss.LASER_BEAM_DAMAGE)) {
-                    victim.igniteForSeconds(3.0F);
+                    victim.setSecondsOnFire(3);
                 }
             }
         }
         if (fireTick >= 0 && fireTick < FlyingSaucerBoss.LASER_FIRE_TICKS && fireTick % FlyingSaucerBoss.WAVE_INTERVAL == 0) {
-            this.level().playSound(null, impact.x, impact.y, impact.z, SoundEvents.GENERIC_EXPLODE.value(),
+            this.level().playSound(null, impact.x, impact.y, impact.z, SoundEvents.GENERIC_EXPLODE,
                 SoundSource.HOSTILE, 2.2F, 0.5F + fireTick / (float)FlyingSaucerBoss.LASER_FIRE_TICKS * 0.3F);
             if (this.level() instanceof ServerLevel serverLevel) {
                 BlockState ground = this.level().getBlockState(BlockPos.containing(impact.x, impact.y - 0.1, impact.z));

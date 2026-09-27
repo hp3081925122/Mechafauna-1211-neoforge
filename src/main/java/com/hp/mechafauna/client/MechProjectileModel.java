@@ -7,11 +7,11 @@ import net.minecraft.resources.ResourceLocation;
 import software.bernie.geckolib.model.GeoModel;
 
 public final class MechProjectileModel extends GeoModel<MechProjectile> {
-    private static final ResourceLocation MISSILE_MODEL = ResourceLocation.fromNamespaceAndPath(Mechafauna.MOD_ID, "geo/mech_missile.geo.json");
-    private static final ResourceLocation SHELL_MODEL = ResourceLocation.fromNamespaceAndPath(Mechafauna.MOD_ID, "geo/mech_shell.geo.json");
-    private static final ResourceLocation MISSILE_TEXTURE = ResourceLocation.fromNamespaceAndPath(Mechafauna.MOD_ID, "textures/entity/mech_missile.png");
-    private static final ResourceLocation SHELL_TEXTURE = ResourceLocation.fromNamespaceAndPath(Mechafauna.MOD_ID, "textures/entity/mech_shell.png");
-    private static final ResourceLocation ANIMATION = ResourceLocation.fromNamespaceAndPath(Mechafauna.MOD_ID, "animations/mech_projectile.animation.json");
+    private static final ResourceLocation MISSILE_MODEL = new ResourceLocation(Mechafauna.MOD_ID, "geo/mech_missile.geo.json");
+    private static final ResourceLocation SHELL_MODEL = new ResourceLocation(Mechafauna.MOD_ID, "geo/mech_shell.geo.json");
+    private static final ResourceLocation MISSILE_TEXTURE = new ResourceLocation(Mechafauna.MOD_ID, "textures/entity/mech_missile.png");
+    private static final ResourceLocation SHELL_TEXTURE = new ResourceLocation(Mechafauna.MOD_ID, "textures/entity/mech_shell.png");
+    private static final ResourceLocation ANIMATION = new ResourceLocation(Mechafauna.MOD_ID, "animations/mech_projectile.animation.json");
 
     @Override
     public ResourceLocation getModelResource(MechProjectile entity) {

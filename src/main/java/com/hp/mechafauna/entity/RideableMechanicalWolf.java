@@ -25,12 +25,13 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.common.ForgeMod;
 import software.bernie.geckolib.animatable.GeoEntity;
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.animation.AnimatableManager;
-import software.bernie.geckolib.animation.AnimationController;
-import software.bernie.geckolib.animation.PlayState;
-import software.bernie.geckolib.animation.RawAnimation;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.core.animation.AnimatableManager;
+import software.bernie.geckolib.core.animation.AnimationController;
+import software.bernie.geckolib.core.object.PlayState;
+import software.bernie.geckolib.core.animation.RawAnimation;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 public final class RideableMechanicalWolf extends Mob implements GeoEntity, OwnableEntity, PlayerRideableJumping {
@@ -48,10 +49,8 @@ public final class RideableMechanicalWolf extends Mob implements GeoEntity, Owna
         return Mob.createMobAttributes()
             .add(Attributes.MAX_HEALTH, 40.0)
             .add(Attributes.MOVEMENT_SPEED, 0.42)
-            .add(Attributes.STEP_HEIGHT, 3.0)
+            .add(ForgeMod.STEP_HEIGHT_ADDITION.get(), 2.4)
             .add(Attributes.JUMP_STRENGTH, 0.65)
-            .add(Attributes.SAFE_FALL_DISTANCE, 8.0)
-            .add(Attributes.FALL_DAMAGE_MULTIPLIER, 0.0)
             .add(Attributes.KNOCKBACK_RESISTANCE, 0.6);
     }
 
@@ -71,9 +70,9 @@ public final class RideableMechanicalWolf extends Mob implements GeoEntity, Owna
     }
 
     @Override
-    protected void defineSynchedData(SynchedEntityData.Builder builder) {
-        super.defineSynchedData(builder);
-        builder.define(DATA_OWNER, Optional.empty());
+    protected void defineSynchedData() {
+        super.defineSynchedData();
+        this.entityData.define(DATA_OWNER, Optional.empty());
     }
 
     @Override

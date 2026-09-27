@@ -19,11 +19,11 @@ public final class PrismSentinelRenderer extends GeoEntityRenderer<PrismSentinel
     static final RenderType LASER = RenderType.create("mechafauna_prism_beam",
         DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.QUADS, 4096, false, false,
         RenderType.CompositeState.builder()
-            .setShaderState(RenderStateShard.POSITION_COLOR_SHADER)
-            .setTransparencyState(RenderStateShard.ADDITIVE_TRANSPARENCY)
-            .setCullState(RenderStateShard.NO_CULL)
-            .setWriteMaskState(RenderStateShard.COLOR_WRITE)
-            .setDepthTestState(RenderStateShard.LEQUAL_DEPTH_TEST)
+            .setShaderState(MechRenderStateAccess.POSITION_COLOR_SHADER)
+            .setTransparencyState(MechRenderStateAccess.ADDITIVE_TRANSPARENCY)
+            .setCullState(MechRenderStateAccess.NO_CULL)
+            .setWriteMaskState(MechRenderStateAccess.COLOR_WRITE)
+            .setDepthTestState(MechRenderStateAccess.LEQUAL_DEPTH_TEST)
             .createCompositeState(false));
 
     public PrismSentinelRenderer(EntityRendererProvider.Context context) {
@@ -32,9 +32,9 @@ public final class PrismSentinelRenderer extends GeoEntityRenderer<PrismSentinel
 
     @Override
     protected void applyRotations(PrismSentinel entity, PoseStack poseStack, float ageInTicks,
-                                  float rotationYaw, float partialTick, float nativeScale) {
+                                  float rotationYaw, float partialTick) {
         super.applyRotations(entity, poseStack, ageInTicks,
-            entity.isPerformingAction() ? entity.getLaserModelYaw(partialTick) : rotationYaw, partialTick, nativeScale);
+            entity.isPerformingAction() ? entity.getLaserModelYaw(partialTick) : rotationYaw, partialTick);
     }
 
     @Override
@@ -185,6 +185,7 @@ public final class PrismSentinelRenderer extends GeoEntityRenderer<PrismSentinel
 
     static void vertex(VertexConsumer vertices, Matrix4f matrix, Vec3 point,
                                float red, float green, float blue, float alpha) {
-        vertices.addVertex(matrix, (float)point.x, (float)point.y, (float)point.z).setColor(red, green, blue, alpha);
+        vertices.vertex(matrix, (float)point.x, (float)point.y, (float)point.z).color(red, green, blue, alpha);
+        vertices.endVertex();
     }
 }

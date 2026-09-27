@@ -1,13 +1,13 @@
 package com.hp.mechafauna;
 
-import net.neoforged.neoforge.common.ModConfigSpec;
+import net.minecraftforge.common.ForgeConfigSpec;
 
 public final class MechafaunaConfig {
-    public static final ModConfigSpec SPEC;
-    public static final ModConfigSpec.IntValue FLYING_SAUCER_MAX_HEALTH;
+    public static final ForgeConfigSpec SPEC;
+    public static final ForgeConfigSpec.IntValue FLYING_SAUCER_MAX_HEALTH;
 
     static {
-        ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
+        ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
         builder.comment("机械生物设置").push("flying_saucer_boss");
         FLYING_SAUCER_MAX_HEALTH = builder
             .comment(

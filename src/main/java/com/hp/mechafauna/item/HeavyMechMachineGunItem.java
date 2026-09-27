@@ -15,7 +15,6 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Item.TooltipContext;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ClipContext;
@@ -28,12 +27,13 @@ import com.hp.mechafauna.client.renderer.HeavyMechMachineGunRenderer;
 import java.util.function.Consumer;
 import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import software.bernie.geckolib.animatable.GeoItem;
-import software.bernie.geckolib.animatable.client.GeoRenderProvider;
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.animation.AnimatableManager;
-import software.bernie.geckolib.animation.AnimationController;
-import software.bernie.geckolib.animation.PlayState;
-import software.bernie.geckolib.animation.RawAnimation;
+import net.minecraftforge.client.IArmPoseTransformer;
+import net.minecraftforge.client.extensions.common.IClientItemExtensions;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.core.animation.AnimatableManager;
+import software.bernie.geckolib.core.animation.AnimationController;
+import software.bernie.geckolib.core.object.PlayState;
+import software.bernie.geckolib.core.animation.RawAnimation;
 import software.bernie.geckolib.constant.DataTickets;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
@@ -71,16 +71,31 @@ public final class HeavyMechMachineGunItem extends Item implements GeoItem {
     }
 
     @Override
-    public void createGeoRenderer(Consumer<GeoRenderProvider> consumer) {
-        consumer.accept(new GeoRenderProvider() {
+    public void initializeClient(Consumer<IClientItemExtensions> consumer) {
+        consumer.accept(new IClientItemExtensions() {
             private HeavyMechMachineGunRenderer renderer;
+            private final net.minecraft.client.model.HumanoidModel.ArmPose armPose = net.minecraft.client.model.HumanoidModel.ArmPose.create(
+                "MECHAFAUNA_MACHINE_GUN",
+                true,
+                (model, livingEntity, arm) -> net.minecraft.client.model.AnimationUtils.animateCrossbowHold(
+                    model.rightArm,
+                    model.leftArm,
+                    model.head,
+                    arm == HumanoidArm.RIGHT
+                )
+            );
 
             @Override
-            public BlockEntityWithoutLevelRenderer getGeoItemRenderer() {
+            public BlockEntityWithoutLevelRenderer getCustomRenderer() {
                 if (this.renderer == null) {
                     this.renderer = new HeavyMechMachineGunRenderer();
                 }
                 return this.renderer;
+            }
+
+            @Override
+            public net.minecraft.client.model.HumanoidModel.ArmPose getArmPose(LivingEntity entity, InteractionHand hand, ItemStack stack) {
+                return this.armPose;
             }
         });
     }
@@ -103,7 +118,7 @@ public final class HeavyMechMachineGunItem extends Item implements GeoItem {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, @org.jetbrains.annotations.Nullable net.minecraft.world.level.Level level, List<Component> tooltip, TooltipFlag flag) {
         tooltip.add(Component.translatable("item.mechafauna.heavy_mech_machine_gun.tooltip").withStyle(ChatFormatting.GRAY));
         if (ReinforcementCoreItem.hasBulletDamageUpgrade(stack)) {
             tooltip.add(Component.translatable("item.mechafauna.reinforcement_core.weapon_upgrade").withStyle(ChatFormatting.GOLD));
@@ -121,7 +136,7 @@ public final class HeavyMechMachineGunItem extends Item implements GeoItem {
     }
 
     @Override
-    public int getUseDuration(ItemStack stack, LivingEntity user) {
+    public int getUseDuration(ItemStack stack) {
         return MAX_FIRE_TICKS;
     }
 
@@ -189,7 +204,7 @@ public final class HeavyMechMachineGunItem extends Item implements GeoItem {
             projectile.setPos(muzzle.x, muzzle.y, muzzle.z);
             projectile.shoot(shotDirection.x, shotDirection.y, shotDirection.z, BULLET_SPEED, 0.0F);
             level.addFreshEntity(projectile);
-            stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
+            stack.hurtAndBreak(1, player, living -> living.broadcastBreakEvent(player.getUsedItemHand()));
             if (stack.isEmpty()) {
                 return;
             }

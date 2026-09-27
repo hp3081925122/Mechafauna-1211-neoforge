@@ -12,38 +12,37 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Item.TooltipContext;
 import net.minecraft.world.item.TooltipFlag;
 import org.jetbrains.annotations.Nullable;
 import software.bernie.geckolib.animatable.GeoItem;
-import software.bernie.geckolib.animatable.client.GeoRenderProvider;
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.animation.AnimatableManager;
+import net.minecraftforge.client.extensions.common.IClientItemExtensions;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.core.animation.AnimatableManager;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 public final class MechArmorItem extends ArmorItem implements GeoItem {
-    private static final int DURABILITY_BASE = 37;
     private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
 
     public MechArmorItem(ArmorItem.Type type) {
-        super(ModArmorMaterials.MECH, type, new Item.Properties().durability(type.getDurability(DURABILITY_BASE)));
+        super(ModArmorMaterials.MECH, type, new Item.Properties());
     }
 
     @Override
-    public void createGeoRenderer(Consumer<GeoRenderProvider> consumer) {
-        consumer.accept(new GeoRenderProvider() {
+    public void initializeClient(Consumer<IClientItemExtensions> consumer) {
+        consumer.accept(new IClientItemExtensions() {
             private MechArmorRenderer renderer;
 
             @Override
-            public <T extends LivingEntity> HumanoidModel<?> getGeoArmorRenderer(
-                @Nullable T livingEntity,
+            public HumanoidModel<?> getHumanoidArmorModel(
+                LivingEntity livingEntity,
                 ItemStack itemStack,
-                @Nullable EquipmentSlot equipmentSlot,
-                @Nullable HumanoidModel<T> original
+                EquipmentSlot equipmentSlot,
+                HumanoidModel<?> original
             ) {
                 if (this.renderer == null) {
                     this.renderer = new MechArmorRenderer();
                 }
+                this.renderer.prepForRender(livingEntity, itemStack, equipmentSlot, original);
                 return this.renderer;
             }
         });
@@ -54,7 +53,7 @@ public final class MechArmorItem extends ArmorItem implements GeoItem {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, @Nullable net.minecraft.world.level.Level level, List<Component> tooltip, TooltipFlag flag) {
         String key = switch (this.type) {
             case HELMET -> "item.mechafauna.mech_helmet.tooltip";
             case CHESTPLATE -> "item.mechafauna.mech_chestplate.tooltip";
