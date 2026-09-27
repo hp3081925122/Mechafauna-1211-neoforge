@@ -31,31 +31,31 @@ public final class ModItems {
 
     public static final Supplier<? extends Item> MECHANICAL_WOLF_SPAWN_EGG = ITEMS.register(
         "mechanical_wolf_spawn_egg",
-        () -> new DeferredSpawnEggItem(ModEntities.MECHANICAL_WOLF, 0x38424A, 0x1ABBC0, new Item.Properties())
+        () -> new DeferredSpawnEggItem(ModEntities.MECHANICAL_WOLF, 0xFFFFFF, 0xFFFFFF, new Item.Properties())
     );
     public static final Supplier<? extends Item> MECHANICAL_TANK_SPAWN_EGG = ITEMS.register(
         "mechanical_tank_spawn_egg",
-        () -> new DeferredSpawnEggItem(ModEntities.MECHANICAL_TANK, 0x66757C, 0xD45835, new Item.Properties())
+        () -> new DeferredSpawnEggItem(ModEntities.MECHANICAL_TANK, 0xFFFFFF, 0xFFFFFF, new Item.Properties())
     );
     public static final Supplier<? extends Item> MECHANICAL_DRONE_SPAWN_EGG = ITEMS.register(
         "mechanical_drone_spawn_egg",
-        () -> new DeferredSpawnEggItem(ModEntities.MECHANICAL_DRONE, 0x53646B, 0x1ABBC0, new Item.Properties())
+        () -> new DeferredSpawnEggItem(ModEntities.MECHANICAL_DRONE, 0xFFFFFF, 0xFFFFFF, new Item.Properties())
     );
     public static final Supplier<? extends Item> MECHANICAL_SPIDER_SPAWN_EGG = ITEMS.register(
         "mechanical_spider_spawn_egg",
-        () -> new DeferredSpawnEggItem(ModEntities.MECHANICAL_SPIDER, 0x5D3430, 0xD34C2E, new Item.Properties())
+        () -> new DeferredSpawnEggItem(ModEntities.MECHANICAL_SPIDER, 0xFFFFFF, 0xFFFFFF, new Item.Properties())
     );
     public static final Supplier<? extends Item> HEAVY_MECH_SPAWN_EGG = ITEMS.register(
         "heavy_mech_spawn_egg",
-        () -> new DeferredSpawnEggItem(ModEntities.HEAVY_MECH, 0x345477, 0xD6742B, new Item.Properties())
+        () -> new DeferredSpawnEggItem(ModEntities.HEAVY_MECH, 0xFFFFFF, 0xFFFFFF, new Item.Properties())
     );
     public static final Supplier<? extends Item> FLAME_CRAWLER_SPAWN_EGG = ITEMS.register(
         "flame_crawler_spawn_egg",
-        () -> new DeferredSpawnEggItem(ModEntities.FLAME_CRAWLER, 0x59646A, 0xE55724, new Item.Properties())
+        () -> new DeferredSpawnEggItem(ModEntities.FLAME_CRAWLER, 0xFFFFFF, 0xFFFFFF, new Item.Properties())
     );
     public static final Supplier<? extends Item> PRISM_SENTINEL_SPAWN_EGG = ITEMS.register(
         "prism_sentinel_spawn_egg",
-        () -> new DeferredSpawnEggItem(ModEntities.PRISM_SENTINEL, 0x263648, 0x43D9DC, new Item.Properties())
+        () -> new DeferredSpawnEggItem(ModEntities.PRISM_SENTINEL, 0xFFFFFF, 0xFFFFFF, new Item.Properties())
     );
     public static final Supplier<MechArmorItem> MECH_HELMET = ITEMS.register(
         "mech_helmet",
@@ -75,7 +75,7 @@ public final class ModItems {
     );
     public static final Supplier<? extends Item> FLYING_SAUCER_BOSS_SPAWN_EGG = ITEMS.register(
         "flying_saucer_boss_spawn_egg",
-        () -> new DeferredSpawnEggItem(ModEntities.FLYING_SAUCER_BOSS, 0x58636B, 0x12B7CA, new Item.Properties())
+        () -> new DeferredSpawnEggItem(ModEntities.FLYING_SAUCER_BOSS, 0xFFFFFF, 0xFFFFFF, new Item.Properties())
     );
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> MECHAFAUNA_TAB = CREATIVE_MODE_TABS.register("main", () -> CreativeModeTab.builder()
         .title(Component.translatable("itemGroup.mechafauna.main"))

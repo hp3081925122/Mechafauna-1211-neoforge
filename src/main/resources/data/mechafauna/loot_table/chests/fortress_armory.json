@@ -1,0 +1,54 @@
+{
+  "type": "minecraft:chest",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        { "type": "minecraft:item", "name": "mechafauna:mech_helmet" },
+        { "type": "minecraft:item", "name": "mechafauna:mech_chestplate" },
+        { "type": "minecraft:item", "name": "mechafauna:mech_leggings" },
+        { "type": "minecraft:item", "name": "mechafauna:mech_boots" }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item", "name": "mechafauna:mechanical_scrap", "weight": 5,
+          "functions": [{ "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 6, "max": 10 } }]
+        }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        { "type": "minecraft:item", "name": "mechafauna:prism_core", "weight": 1 },
+        { "type": "minecraft:item", "name": "mechafauna:weaponized_drone", "weight": 1 },
+        { "type": "minecraft:item", "name": "mechafauna:mechanical_wolf_summon", "weight": 2 },
+        { "type": "minecraft:item", "name": "mechafauna:mechanical_spider_throwable", "weight": 2 }
+      ]
+    },
+    {
+      "rolls": { "type": "minecraft:uniform", "min": 3, "max": 5 },
+      "entries": [
+        {
+          "type": "minecraft:item", "name": "minecraft:iron_ingot", "weight": 5,
+          "functions": [{ "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 5, "max": 10 } }]
+        },
+        {
+          "type": "minecraft:item", "name": "minecraft:gold_ingot", "weight": 3,
+          "functions": [{ "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 2, "max": 4 } }]
+        },
+        {
+          "type": "minecraft:item", "name": "minecraft:diamond", "weight": 2,
+          "functions": [{ "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 1, "max": 2 } }]
+        },
+        { "type": "minecraft:item", "name": "minecraft:golden_apple", "weight": 2 },
+        {
+          "type": "minecraft:item", "name": "minecraft:experience_bottle", "weight": 3,
+          "functions": [{ "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 3, "max": 6 } }]
+        }
+      ]
+    }
+  ]
+}
