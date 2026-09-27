@@ -1,0 +1,13 @@
+{
+  "entries": [
+    {
+      "enum": "net/minecraft/client/model/HumanoidModel$ArmPose",
+      "name": "MECHAFAUNA_MACHINE_GUN",
+      "constructor": "(ZLnet/neoforged/neoforge/client/IArmPoseTransformer;)V",
+      "parameters": {
+        "class": "com/hp/mechafauna/client/HeavyMechMachineGunClientExtensions",
+        "field": "ARM_POSE_PARAMETERS"
+      }
+    }
+  ]
+}

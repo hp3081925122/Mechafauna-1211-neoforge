@@ -24,8 +24,8 @@ public final class ModArmorMaterials {
         SoundEvents.ARMOR_EQUIP_NETHERITE,
         () -> Ingredient.of(ModItems.MECHANICAL_SCRAP.get()),
         List.of(new ArmorMaterial.Layer(ResourceLocation.fromNamespaceAndPath(Mechafauna.MOD_ID, "mech"))),
-        3.0F,
-        0.1F
+        2.0F,
+        0.15F
     ));
 
     private ModArmorMaterials() {

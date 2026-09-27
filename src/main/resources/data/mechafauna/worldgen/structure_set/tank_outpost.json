@@ -1,0 +1,15 @@
+{
+  "structures": [
+    { "structure": "mechafauna:tank_outpost", "weight": 1 }
+  ],
+  "placement": {
+    "type": "minecraft:random_spread",
+    "spacing": 38,
+    "separation": 14,
+    "salt": 274915647,
+    "exclusion_zone": {
+      "other_set": "mechafauna:heavy_mech_fortress",
+      "chunk_count": 4
+    }
+  }
+}

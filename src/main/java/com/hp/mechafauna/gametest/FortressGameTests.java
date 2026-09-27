@@ -135,8 +135,8 @@ public final class FortressGameTests {
                         "Prism Sentinel population limit is incorrect");
                     helper.assertTrue(nbt.getShort("MinSpawnDelay") == 3600 && nbt.getShort("MaxSpawnDelay") == 7200,
                         "Prism Sentinel rarity cooldown is incorrect");
-                    helper.assertTrue(nbt.getCompound("SpawnData").getCompound("custom_spawn_rules")
-                        .getCompound("sky_light_limit").getInt("max_inclusive") == 7, "Prism Sentinel must require a dark sky");
+                    helper.assertTrue(data.getCustomSpawnRules().orElseThrow().skyLightLimit().maxInclusive() == 7,
+                        "Prism Sentinel sky light limit is incorrect");
                 } else {
                     helper.assertTrue(data.getCustomSpawnRules().orElseThrow().isValidPosition(pos, level), "Spawner rejects fortress lighting");
                     helper.assertTrue(nbt.getShort("SpawnCount") == 1 && nbt.getShort("MaxNearbyEntities") == 3,

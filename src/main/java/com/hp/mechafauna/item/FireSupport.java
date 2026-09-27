@@ -28,17 +28,21 @@ public final class FireSupport {
         ItemStack legs = player.getItemBySlot(EquipmentSlot.LEGS);
         ItemStack boots = player.getItemBySlot(EquipmentSlot.FEET);
         if (helmet.is(ModItems.MECH_HELMET.get())) {
-            tryActivate(player, ModItems.MECH_HELMET.get(), COOLDOWN_TICKS, () -> summonDrone(player));
+            tryActivate(player, ModItems.MECH_HELMET.get(), cooldown(helmet, COOLDOWN_TICKS), () -> summonDrone(player));
         }
         if (chest.is(ModItems.MECH_CHESTPLATE.get())) {
-            tryActivate(player, ModItems.MECH_CHESTPLATE.get(), CHEST_COOLDOWN_TICKS, () -> summonLaser(player));
+            tryActivate(player, ModItems.MECH_CHESTPLATE.get(), cooldown(chest, CHEST_COOLDOWN_TICKS), () -> summonLaser(player));
         }
         if (legs.is(ModItems.MECH_LEGGINGS.get())) {
-            tryActivate(player, ModItems.MECH_LEGGINGS.get(), COOLDOWN_TICKS, () -> summonSpiders(player));
+            tryActivate(player, ModItems.MECH_LEGGINGS.get(), cooldown(legs, COOLDOWN_TICKS), () -> summonSpiders(player));
         }
         if (boots.is(ModItems.MECH_BOOTS.get())) {
-            tryActivate(player, ModItems.MECH_BOOTS.get(), COOLDOWN_TICKS, () -> summonPrisms(player));
+            tryActivate(player, ModItems.MECH_BOOTS.get(), cooldown(boots, COOLDOWN_TICKS), () -> summonPrisms(player));
         }
+    }
+
+    private static int cooldown(ItemStack armorStack, int baseCooldown) {
+        return ReinforcementCoreItem.hasArmorCooldownUpgrade(armorStack) ? baseCooldown / 2 : baseCooldown;
     }
 
     private static void tryActivate(ServerPlayer player, Item item, int cooldown, java.util.function.BooleanSupplier action) {

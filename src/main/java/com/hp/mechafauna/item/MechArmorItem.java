@@ -65,6 +65,9 @@ public final class MechArmorItem extends ArmorItem implements GeoItem {
         if (key != null) {
             tooltip.add(Component.translatable(key, Component.keybind("key.mechafauna.fire_support")).withStyle(ChatFormatting.GRAY));
         }
+        if (ReinforcementCoreItem.hasArmorCooldownUpgrade(stack)) {
+            tooltip.add(Component.translatable("item.mechafauna.reinforcement_core.armor_upgrade").withStyle(ChatFormatting.GOLD));
+        }
     }
 
     @Override

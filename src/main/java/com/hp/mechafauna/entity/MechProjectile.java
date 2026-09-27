@@ -37,9 +37,13 @@ public final class MechProjectile extends ThrowableItemProjectile implements Geo
     };
     private static final ResourceKey<DamageType> MILITARY_DRONE = ResourceKey.create(
         Registries.DAMAGE_TYPE, ResourceLocation.fromNamespaceAndPath(Mechafauna.MOD_ID, "military_drone"));
+    private static final ResourceKey<DamageType> REINFORCED_BULLET = ResourceKey.create(
+        Registries.DAMAGE_TYPE, ResourceLocation.fromNamespaceAndPath(Mechafauna.MOD_ID, "reinforced_bullet"));
     private final AnimatableInstanceCache animationCache = GeckoLibUtil.createInstanceCache(this);
     private float impactDamage;
     private boolean bypassHurtCooldown;
+    private boolean reinforcedBulletDamage;
+    private boolean igniteOnHit;
 
     public MechProjectile(EntityType<? extends MechProjectile> entityType, Level level) {
         super(entityType, level);
@@ -75,21 +79,37 @@ public final class MechProjectile extends ThrowableItemProjectile implements Geo
         this.bypassHurtCooldown = bypassHurtCooldown;
     }
 
+    public void setIgniteOnHit(boolean igniteOnHit) {
+        this.igniteOnHit = igniteOnHit;
+    }
+
+    public void setReinforcedBulletDamage(boolean reinforcedBulletDamage) {
+        this.reinforcedBulletDamage = reinforcedBulletDamage;
+    }
+
     @Override
     public void addAdditionalSaveData(CompoundTag tag) {
         super.addAdditionalSaveData(tag);
         tag.putBoolean("BypassCooldown", this.bypassHurtCooldown);
+        tag.putBoolean("ReinforcedBulletDamage", this.reinforcedBulletDamage);
+        tag.putBoolean("IgniteOnHit", this.igniteOnHit);
     }
 
     @Override
     public void readAdditionalSaveData(CompoundTag tag) {
         super.readAdditionalSaveData(tag);
         this.bypassHurtCooldown = tag.getBoolean("BypassCooldown");
+        this.reinforcedBulletDamage = tag.getBoolean("ReinforcedBulletDamage");
+        this.igniteOnHit = tag.getBoolean("IgniteOnHit");
     }
 
     @Override
     public void tick() {
         super.tick();
+        if (!this.isRemoved()) {
+            float drag = this.isInWater() ? 0.8F : 0.99F;
+            this.setDeltaMovement(this.getDeltaMovement().scale(1.0 / drag));
+        }
         if (this.tickCount > 100) {
             this.discard();
         }
@@ -130,6 +150,12 @@ public final class MechProjectile extends ThrowableItemProjectile implements Geo
                 if (target instanceof LivingEntity || target instanceof SaucerDamagePart) {
                     damageApplied = target.hurt(this.impactSource(), this.impactDamage);
                 }
+                if (damageApplied && this.igniteOnHit) {
+                    Entity burningTarget = target instanceof PartEntity<?> part ? part.getParent() : target;
+                    if (burningTarget instanceof LivingEntity livingTarget) {
+                        livingTarget.igniteForSeconds(2.0F);
+                    }
+                }
                 LOGGER.debug("Mech laser collision projectile={} target={} damage={} applied={}", this.getId(), hit.getEntity().getId(), this.impactDamage, damageApplied);
                 this.discard();
             }
@@ -162,7 +188,8 @@ public final class MechProjectile extends ThrowableItemProjectile implements Geo
 
     private DamageSource impactSource() {
         if (this.bypassHurtCooldown) {
-            return this.damageSources().source(MILITARY_DRONE, this, this.getOwner());
+            ResourceKey<DamageType> damageType = this.reinforcedBulletDamage ? REINFORCED_BULLET : MILITARY_DRONE;
+            return this.damageSources().source(damageType, this, this.getOwner());
         }
         return this.damageSources().thrown(this, this.getOwner());
     }

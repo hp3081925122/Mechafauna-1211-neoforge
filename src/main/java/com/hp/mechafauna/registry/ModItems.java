@@ -2,9 +2,12 @@ package com.hp.mechafauna.registry;
 
 import com.hp.mechafauna.Mechafauna;
 import com.hp.mechafauna.item.MechArmorItem;
+import com.hp.mechafauna.item.HeavyMechMachineGunItem;
+import com.hp.mechafauna.item.FlyingSaucerLocatorItem;
 import com.hp.mechafauna.item.MechanicalSpiderThrowableItem;
 import com.hp.mechafauna.item.MechanicalWolfSummonItem;
 import com.hp.mechafauna.item.PrismCoreItem;
+import com.hp.mechafauna.item.ReinforcementCoreItem;
 import com.hp.mechafauna.item.WeaponizedDroneItem;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -28,6 +31,9 @@ public final class ModItems {
     public static final Supplier<? extends Item> WEAPONIZED_DRONE = ITEMS.register("weaponized_drone", WeaponizedDroneItem::new);
     public static final Supplier<? extends Item> MECHANICAL_SPIDER_THROWABLE = ITEMS.register("mechanical_spider_throwable", MechanicalSpiderThrowableItem::new);
     public static final Supplier<? extends Item> PRISM_CORE = ITEMS.register("prism_core", PrismCoreItem::new);
+    public static final Supplier<? extends Item> HEAVY_MECH_MACHINE_GUN = ITEMS.register("heavy_mech_machine_gun", HeavyMechMachineGunItem::new);
+    public static final Supplier<ReinforcementCoreItem> REINFORCEMENT_CORE = ITEMS.register("reinforcement_core", ReinforcementCoreItem::new);
+    public static final Supplier<? extends Item> FLYING_SAUCER_LOCATOR = ITEMS.register("flying_saucer_locator", FlyingSaucerLocatorItem::new);
 
     public static final Supplier<? extends Item> MECHANICAL_WOLF_SPAWN_EGG = ITEMS.register(
         "mechanical_wolf_spawn_egg",
@@ -94,6 +100,9 @@ public final class ModItems {
             output.accept(WEAPONIZED_DRONE.get());
             output.accept(MECHANICAL_SPIDER_THROWABLE.get());
             output.accept(PRISM_CORE.get());
+            output.accept(HEAVY_MECH_MACHINE_GUN.get());
+            output.accept(REINFORCEMENT_CORE.get());
+            output.accept(FLYING_SAUCER_LOCATOR.get());
             output.accept(MECH_HELMET.get());
             output.accept(MECH_CHESTPLATE.get());
             output.accept(MECH_LEGGINGS.get());
@@ -119,6 +128,9 @@ public final class ModItems {
             event.accept(WEAPONIZED_DRONE.get());
             event.accept(MECHANICAL_SPIDER_THROWABLE.get());
             event.accept(PRISM_CORE.get());
+            event.accept(HEAVY_MECH_MACHINE_GUN.get());
+            event.accept(REINFORCEMENT_CORE.get());
+            event.accept(FLYING_SAUCER_LOCATOR.get());
         }
         if (event.getTabKey().equals(CreativeModeTabs.COMBAT)) {
             event.accept(MECH_HELMET.get());

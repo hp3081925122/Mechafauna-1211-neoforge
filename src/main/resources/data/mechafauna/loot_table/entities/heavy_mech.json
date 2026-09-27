@@ -9,6 +9,24 @@
           "name": "mechafauna:mechanical_scrap"
         }
       ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "mechafauna:heavy_mech_machine_gun"
+        }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "mechafauna:flying_saucer_locator"
+        }
+      ]
     }
   ]
 }
