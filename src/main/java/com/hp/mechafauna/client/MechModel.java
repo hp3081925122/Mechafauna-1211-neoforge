@@ -80,8 +80,8 @@ public final class MechModel<T extends AnimatedHostileMob & GeoAnimatable> exten
                     });
                 }
             }
-        } else if (entity instanceof MechanicalTank) {
-            this.aimWeapon(entity, WeaponMount.TANK_CANNON, partialTick);
+        } else if (entity instanceof MechanicalTank tank) {
+            this.aimWeapon(entity, WeaponMount.TANK_CANNON, partialTick, tank.getCannonAimOverride(partialTick).orElse(null));
         } else if (entity instanceof MilitaryDrone) {
             this.aimWeapon(entity, WeaponMount.MILITARY_DRONE_GUN, partialTick);
             this.getBone("gun_spin").ifPresent(bone -> {
@@ -90,9 +90,9 @@ public final class MechModel<T extends AnimatedHostileMob & GeoAnimatable> exten
             });
         } else if (entity instanceof MechanicalDrone) {
             this.aimWeapon(entity, WeaponMount.DRONE_GUN, partialTick);
-        } else if (entity instanceof HeavyMech) {
+        } else if (entity instanceof HeavyMech mech) {
             this.aimWeapon(entity, WeaponMount.MECH_GUN, partialTick);
-            this.aimWeapon(entity, WeaponMount.MECH_MISSILES, partialTick);
+            this.aimWeapon(entity, WeaponMount.MECH_MISSILES, partialTick, mech.getMissileAimOverride(partialTick));
         } else if (entity instanceof FlameCrawler) {
             this.aimWeapon(entity, WeaponMount.FLAME_CRAWLER, partialTick);
         } else if (entity instanceof PrismSentinel prism && prism.isPerformingAction()) {
@@ -113,16 +113,20 @@ public final class MechModel<T extends AnimatedHostileMob & GeoAnimatable> exten
     }
 
     private void aimWeapon(T entity, WeaponMount mount, float partialTick) {
+        this.aimWeapon(entity, mount, partialTick, null);
+    }
+
+    private void aimWeapon(T entity, WeaponMount mount, float partialTick, Vec3 aimOverride) {
         GeoBone yawBone = this.getBone(mount.yawBone()).orElse(null);
         GeoBone pitchBone = this.getBone(mount.pitchBone()).orElse(null);
         if (yawBone == null || pitchBone == null) {
             return;
         }
-        Vec3 targetCenter = null;
-        if (entity instanceof MechanicalDrone drone && drone.isOwnedDrone()
+        Vec3 targetCenter = aimOverride;
+        if (targetCenter == null && entity instanceof MechanicalDrone drone && drone.isOwnedDrone()
             && drone.getControllingPassenger() instanceof Player pilot) {
             targetCenter = pilot.getEyePosition().add(pilot.getLookAngle().scale(48.0));
-        } else {
+        } else if (targetCenter == null) {
             LivingEntity target = entity.getCombatTarget();
             if (target != null) {
                 targetCenter = target.getPosition(partialTick).add(0.0, target.getBbHeight() * 0.5, 0.0);

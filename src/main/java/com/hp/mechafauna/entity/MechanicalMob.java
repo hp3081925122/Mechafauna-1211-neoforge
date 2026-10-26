@@ -18,7 +18,7 @@ public abstract class MechanicalMob extends AnimatedHostileMob {
             return drone.getOwnerUUID();
         }
         if (entity instanceof MechanicalSpider spider) {
-            return spider.getSummonerUUID();
+            return spider.getPlayerSummoner();
         }
         if (entity instanceof PrismSentinel prism) {
             return prism.getSupportOwner();
