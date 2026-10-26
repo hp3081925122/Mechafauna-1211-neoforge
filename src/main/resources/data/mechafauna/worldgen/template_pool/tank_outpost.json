@@ -5,8 +5,26 @@
       "weight": 1,
       "element": {
         "element_type": "minecraft:single_pool_element",
-        "location": "mechafauna:tank_outpost",
-        "processors": "minecraft:empty",
+        "location": "mechafauna:tank_wreck_1",
+        "processors": "mechafauna:wreck_weathering",
+        "projection": "rigid"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "mechafauna:tank_wreck_2",
+        "processors": "mechafauna:wreck_weathering",
+        "projection": "rigid"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "mechafauna:tank_wreck_3",
+        "processors": "mechafauna:wreck_weathering",
         "projection": "rigid"
       }
     }

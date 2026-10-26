@@ -26,8 +26,6 @@ public final class Mechafauna {
         modEventBus.addListener(ModItems::addSpawnEggsToCreativeTab);
         modEventBus.addListener(DroneControlPayload::register);
         modEventBus.addListener(FireSupportPayload::register);
-        modEventBus.addListener(com.hp.mechafauna.gametest.FortressGameTests::register);
-        modEventBus.addListener(com.hp.mechafauna.gametest.TankOutpostGameTests::register);
         if (FMLEnvironment.getDist().isClient()) {
             modEventBus.addListener(com.hp.mechafauna.client.ClientModEvents::registerRenderPipelines);
             modEventBus.addListener(com.hp.mechafauna.client.ClientModEvents::registerRenderers);
