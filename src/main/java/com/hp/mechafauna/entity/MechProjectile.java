@@ -141,7 +141,7 @@ public final class MechProjectile extends ThrowableItemProjectile implements Geo
                 boolean damageApplied = false;
                 Entity target = hit.getEntity();
                 if (target instanceof LivingEntity || target instanceof SaucerDamagePart) {
-                    damageApplied = target.hurt(this.impactSource(), this.impactDamage);
+                    damageApplied = target.hurt(this.impactSource(), this.ownerPercentDamage(target, this.impactDamage));
                 }
                 if (damageApplied && this.igniteOnHit) {
                     Entity burningTarget = target instanceof PartEntity<?> part ? part.getParent() : target;
@@ -158,7 +158,7 @@ public final class MechProjectile extends ThrowableItemProjectile implements Geo
             Entity livingTarget = hit.getEntity();
             if (livingTarget instanceof LivingEntity || livingTarget instanceof SaucerDamagePart) {
                 float damage = this.getItem().is(Items.FIREWORK_ROCKET) ? 4.0F : 8.0F;
-                livingTarget.hurt(this.impactSource(), damage);
+                livingTarget.hurt(this.impactSource(), this.ownerPercentDamage(livingTarget, damage));
             }
         }
     }
@@ -178,6 +178,10 @@ public final class MechProjectile extends ThrowableItemProjectile implements Geo
                 this.getX(), this.getY(), this.getZ(), radius, policy);
             this.discard();
         }
+    }
+
+    private float ownerPercentDamage(Entity target, float damage) {
+        return this.getOwner() instanceof FlyingSaucerBoss saucer ? saucer.withPercentDamage(target, damage) : damage;
     }
 
     private DamageSource impactSource() {

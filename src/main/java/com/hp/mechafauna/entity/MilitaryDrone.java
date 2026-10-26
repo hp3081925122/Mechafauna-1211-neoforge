@@ -20,7 +20,7 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.OwnableEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.entity.ai.control.FlyingMoveControl;
+import com.hp.mechafauna.entity.ai.CombatMoveControl;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.navigation.FlyingPathNavigation;
@@ -55,7 +55,7 @@ public final class MilitaryDrone extends MechanicalMob implements OwnableEntity 
 
     public MilitaryDrone(EntityType<? extends MilitaryDrone> entityType, Level level) {
         super(entityType, level);
-        this.moveControl = new FlyingMoveControl(this, 20, true);
+        this.moveControl = new CombatMoveControl.Flying(this, 20, true);
         this.setNoGravity(true);
     }
 
@@ -304,6 +304,8 @@ public final class MilitaryDrone extends MechanicalMob implements OwnableEntity 
     }
 
     private final class GuardTargetGoal extends Goal {
+        private int rescanTicks;
+
         private GuardTargetGoal() {
             this.setFlags(EnumSet.of(Goal.Flag.TARGET));
         }
@@ -323,8 +325,14 @@ public final class MilitaryDrone extends MechanicalMob implements OwnableEntity 
             if (!(MilitaryDrone.this.getOwner() instanceof Player owner)) {
                 return;
             }
+            LivingEntity current = MilitaryDrone.this.getTarget();
+            boolean currentValid = MilitaryDrone.this.isMonsterTarget(current) && owner.distanceToSqr(current) <= GUARD_RANGE * GUARD_RANGE;
+            if (currentValid && --this.rescanTicks > 0) {
+                return;
+            }
+            this.rescanTicks = 10;
             LivingEntity next = this.pick(owner);
-            if (MilitaryDrone.this.getTarget() != next) {
+            if (current != next) {
                 MilitaryDrone.this.setTarget(next);
             }
         }

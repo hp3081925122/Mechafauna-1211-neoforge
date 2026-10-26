@@ -12,6 +12,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
+import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -45,6 +46,7 @@ public final class MechanicalSpider extends MechanicalMob {
     private boolean selfDestructing;
     private LivingEntity overloadTarget;
     private UUID summonerUUID;
+    private boolean playerSummon;
     private int supportTicks = -1;
     private boolean thrownItemSpider;
     private int thrownItemTicks;
@@ -60,6 +62,7 @@ public final class MechanicalSpider extends MechanicalMob {
         tag.putInt("ThrownItemTicks", this.thrownItemTicks);
         if (this.summonerUUID != null) {
             tag.putUUID("Summoner", this.summonerUUID);
+            tag.putBoolean("PlayerSummon", this.playerSummon);
         }
         if (this.supportTicks > 0) {
             tag.putInt("SupportTicks", this.supportTicks);
@@ -72,11 +75,13 @@ public final class MechanicalSpider extends MechanicalMob {
         this.thrownItemSpider = tag.getBoolean("ThrownItemSpider");
         this.thrownItemTicks = tag.getInt("ThrownItemTicks");
         this.summonerUUID = tag.hasUUID("Summoner") ? tag.getUUID("Summoner") : null;
+        this.playerSummon = this.summonerUUID != null && (!tag.contains("PlayerSummon") || tag.getBoolean("PlayerSummon"));
         this.supportTicks = tag.contains("SupportTicks") ? tag.getInt("SupportTicks") : -1;
     }
 
     public void launchFromItem(UUID summonerUUID, Vec3 velocity) {
         this.summonerUUID = summonerUUID;
+        this.playerSummon = summonerUUID != null;
         this.thrownItemSpider = true;
         this.thrownItemTicks = 0;
         this.setNoAi(true);
@@ -143,10 +148,27 @@ public final class MechanicalSpider extends MechanicalMob {
 
     public void setSummonerUUID(UUID summonerUUID) {
         this.summonerUUID = summonerUUID;
+        this.playerSummon = summonerUUID != null;
+    }
+
+    public void setMechSummoner(UUID summonerUUID) {
+        this.summonerUUID = summonerUUID;
+        this.playerSummon = false;
     }
 
     public UUID getSummonerUUID() {
         return this.summonerUUID;
+    }
+
+    public UUID getPlayerSummoner() {
+        return this.playerSummon ? this.summonerUUID : null;
+    }
+
+    @Override
+    protected void registerGoals() {
+        super.registerGoals();
+        this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, AnimatedHostileMob.class, 10, true, false,
+            target -> this.playerSummon && playerSummonOwner(target) == null));
     }
 
     @Override
@@ -161,7 +183,7 @@ public final class MechanicalSpider extends MechanicalMob {
 
     @Override
     public boolean canAttack(LivingEntity target) {
-        if (this.summonerUUID != null && (target instanceof Player || !(target instanceof Enemy) || this.isAlliedTo(target))) {
+        if (this.playerSummon && (target instanceof Player || !(target instanceof Enemy) || this.isAlliedTo(target))) {
             return false;
         }
         return super.canAttack(target);
@@ -220,6 +242,16 @@ public final class MechanicalSpider extends MechanicalMob {
     @Override
     public int getActionDuration(String action) {
         return BITE_DURATION_TICKS;
+    }
+
+    @Override
+    protected int getInterruptedActionCooldown(String action, int actionTick) {
+        return actionTick < BITE_HIT_TICK ? 6 : -1;
+    }
+
+    @Override
+    public boolean canMoveDuringAction(String action) {
+        return BITE.equals(action);
     }
 
     @Override

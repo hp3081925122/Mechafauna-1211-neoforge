@@ -19,7 +19,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.entity.ai.control.FlyingMoveControl;
+import com.hp.mechafauna.entity.ai.CombatMoveControl;
 import net.minecraft.world.entity.ai.navigation.FlyingPathNavigation;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.player.Player;
@@ -30,6 +30,7 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 public final class PrismSentinel extends MechanicalMob {
+    private static final org.slf4j.Logger LOGGER = com.mojang.logging.LogUtils.getLogger();
     private static final String LASER = "laser";
     private static final String LASER_SWEEP = "laser_sweep";
     private static final int LASER_FIRE_TICK = 13;
@@ -61,7 +62,7 @@ public final class PrismSentinel extends MechanicalMob {
 
     public PrismSentinel(EntityType<? extends PrismSentinel> entityType, Level level) {
         super(entityType, level);
-        this.moveControl = new FlyingMoveControl(this, 20, true);
+        this.moveControl = new CombatMoveControl.Flying(this, 20, true);
         this.setNoGravity(true);
     }
 
@@ -94,6 +95,12 @@ public final class PrismSentinel extends MechanicalMob {
         if (current != null && current.isAlive() && this.canAttack(current)) {
             return;
         }
+        if (current != null) {
+            this.setTarget(null);
+        }
+        if (this.tickCount % 10 != 0) {
+            return;
+        }
         double range = this.getAttributeValue(Attributes.FOLLOW_RANGE);
         AABB area = this.getBoundingBox().inflate(range, 8.0, range);
         LivingEntity nearest = null;
@@ -105,8 +112,9 @@ public final class PrismSentinel extends MechanicalMob {
                 nearestDistance = distance;
             }
         }
-        if (this.getTarget() != nearest) {
+        if (nearest != null) {
             this.setTarget(nearest);
+            LOGGER.debug("Support prism target acquired entity={} target={} type={}", this.getId(), nearest.getId(), nearest.getType());
         }
     }
 
@@ -436,10 +444,7 @@ public final class PrismSentinel extends MechanicalMob {
         Vec3 end = blockHit.getLocation();
         ArrayList<BeamEntityHit> hits = new ArrayList<>();
         for (LivingEntity candidate : this.level().getEntitiesOfClass(LivingEntity.class,
-            new AABB(origin, end).inflate(0.12), entity -> entity != this && entity.isAlive()
-                && (!(entity instanceof MechanicalMob) || entity instanceof MilitaryDrone) && !this.isAlliedTo(entity)
-                && !(this.supportOwner != null && entity instanceof Player)
-                && !(entity instanceof Player player && (player.isSpectator() || player.isCreative())))) {
+            new AABB(origin, end).inflate(0.12), entity -> entity != this && entity.isAlive() && this.canLaserHit(entity))) {
             AABB box = candidate.getBoundingBox().inflate(0.09);
             Vec3 hit = box.contains(origin) ? origin : box.clip(origin, end).orElse(null);
             if (hit != null) {
@@ -449,6 +454,16 @@ public final class PrismSentinel extends MechanicalMob {
         hits.sort(Comparator.comparingDouble(BeamEntityHit::distanceSquared));
         return new LaserRay(origin, direction, end, hits.stream().map(BeamEntityHit::entity).toList(),
             hits.stream().map(BeamEntityHit::location).toList(), blockHit.getType() != HitResult.Type.MISS);
+    }
+
+    private boolean canLaserHit(LivingEntity entity) {
+        if (this.supportOwner != null) {
+            return this.canAttack(entity);
+        }
+        if (entity instanceof Player player && (player.isSpectator() || player.isCreative())) {
+            return false;
+        }
+        return !this.isAlliedTo(entity) && (!(entity instanceof MechanicalMob) || playerSummonOwner(entity) != null);
     }
 
     private record BeamEntityHit(LivingEntity entity, Vec3 location, double distanceSquared) {
