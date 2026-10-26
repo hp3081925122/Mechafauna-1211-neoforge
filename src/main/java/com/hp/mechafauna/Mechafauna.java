@@ -29,6 +29,7 @@ public final class Mechafauna {
         modEventBus.addListener(com.hp.mechafauna.gametest.FortressGameTests::register);
         modEventBus.addListener(com.hp.mechafauna.gametest.TankOutpostGameTests::register);
         if (FMLEnvironment.getDist().isClient()) {
+            modEventBus.addListener(com.hp.mechafauna.client.ClientModEvents::registerRenderPipelines);
             modEventBus.addListener(com.hp.mechafauna.client.ClientModEvents::registerRenderers);
             modEventBus.addListener(com.hp.mechafauna.client.ClientModEvents::registerParticleProviders);
             modEventBus.addListener(com.hp.mechafauna.client.ModKeyMappings::register);

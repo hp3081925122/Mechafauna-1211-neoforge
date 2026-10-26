@@ -5,6 +5,7 @@ import com.hp.mechafauna.entity.HeavyMech;
 import com.hp.mechafauna.entity.FlyingSaucerBoss;
 import com.hp.mechafauna.entity.FlameCrawler;
 import com.hp.mechafauna.entity.MechProjectile;
+import com.hp.mechafauna.entity.MechStrikeZone;
 import com.hp.mechafauna.entity.PrismBeam;
 import com.hp.mechafauna.entity.MechanicalDrone;
 import com.hp.mechafauna.entity.MilitaryDrone;
@@ -80,6 +81,16 @@ public final class ModEntities {
             .updateInterval(1)
             .noSave()
             .build(ResourceKey.create(Registries.ENTITY_TYPE, Identifier.fromNamespaceAndPath(Mechafauna.MOD_ID, "saucer_laser_strike")))
+    );
+    public static final DeferredHolder<EntityType<?>, EntityType<MechStrikeZone>> MECH_STRIKE_ZONE = ENTITY_TYPES.register(
+        "mech_strike_zone",
+        () -> EntityType.Builder.<MechStrikeZone>of(MechStrikeZone::new, MobCategory.MISC)
+            .sized(0.1F, 0.1F)
+            .clientTrackingRange(10)
+            .updateInterval(20)
+            .noSave()
+            .noSummon()
+            .build(ResourceKey.create(Registries.ENTITY_TYPE, Identifier.fromNamespaceAndPath(Mechafauna.MOD_ID, "mech_strike_zone")))
     );
     public static final DeferredHolder<EntityType<?>, EntityType<MechProjectile>> MECH_PROJECTILE = ENTITY_TYPES.register(
         "mech_projectile",

@@ -35,8 +35,9 @@ public final class FlameCrawler extends MechanicalMob {
     private static final EntityDataAccessor<Integer> DATA_DETONATION_FUSE_TICKS = SynchedEntityData.defineId(FlameCrawler.class, EntityDataSerializers.INT);
     private static final int FLAME_START_TICK = 7;
     private static final int FLAME_END_TICK = 38;
-    private static final int FLAME_HIT_INTERVAL_TICKS = 12;
-    private static final float FLAME_DAMAGE = 2.0F;
+    private static final int FLAME_HIT_INTERVAL_TICKS = 10;
+    private static final double ATTACK_DAMAGE = 3.0;
+    private static final float FLAME_DAMAGE_MULTIPLIER = 1.1F;
     private static final float FLAME_IGNITE_SECONDS = 4.0F;
     private static final double FLAME_BASE_HIT_RADIUS = 0.12;
     private static final double FLAME_TIP_HIT_RADIUS = 1.92;
@@ -52,7 +53,7 @@ public final class FlameCrawler extends MechanicalMob {
     }
 
     public static AttributeSupplier.Builder createAttributes() {
-        return createAttributes(46.0, 0.23, 5.0, 32.0, 0.45);
+        return createAttributes(46.0, 0.23, 5.0, 32.0, 0.45).add(Attributes.ATTACK_DAMAGE, ATTACK_DAMAGE);
     }
 
     @Override
@@ -206,7 +207,7 @@ public final class FlameCrawler extends MechanicalMob {
     private void damageAlongFlameRay(int actionTick, LivingEntity target) {
         FlameRay ray = this.getFlameRay(1.0F);
         if (ray == null) {
-            boolean targetDamaged = this.damageTarget(target, FLAME_DAMAGE, MAX_FLAME_LENGTH * MAX_FLAME_LENGTH);
+            boolean targetDamaged = this.damageTarget(target, this.flameDamage(), MAX_FLAME_LENGTH * MAX_FLAME_LENGTH);
             if (targetDamaged) {
                 target.igniteForSeconds(FLAME_IGNITE_SECONDS);
             }
@@ -217,7 +218,7 @@ public final class FlameCrawler extends MechanicalMob {
         Vec3 segment = ray.end().subtract(ray.origin());
         double length = segment.length();
         if (length < 1.0E-4) {
-            boolean targetDamaged = this.damageTarget(target, FLAME_DAMAGE, MAX_FLAME_LENGTH * MAX_FLAME_LENGTH);
+            boolean targetDamaged = this.damageTarget(target, this.flameDamage(), MAX_FLAME_LENGTH * MAX_FLAME_LENGTH);
             if (targetDamaged) {
                 target.igniteForSeconds(FLAME_IGNITE_SECONDS);
             }
@@ -230,7 +231,8 @@ public final class FlameCrawler extends MechanicalMob {
         int intersections = 0;
         int damaged = 0;
         for (LivingEntity victim : this.level().getEntitiesOfClass(LivingEntity.class, searchBounds,
-            entity -> entity != this && entity != target && entity.isAlive() && !this.isAlliedTo(entity))) {
+            entity -> entity != this && entity != target && entity.isAlive() && !this.isAlliedTo(entity)
+                && !(isIgnoredByOtherMechs(entity) && playerSummonOwner(entity) == null))) {
             double along = victim.getBoundingBox().getCenter().subtract(ray.origin()).dot(direction);
             if (along < 0.0 || along > length) {
                 continue;
@@ -242,18 +244,22 @@ public final class FlameCrawler extends MechanicalMob {
                 continue;
             }
             intersections++;
-            if (victim.hurtOrSimulate(this.damageSources().mobAttack(this), FLAME_DAMAGE)) {
+            if (victim.hurtOrSimulate(this.damageSources().mobAttack(this), this.flameDamage())) {
                 victim.igniteForSeconds(FLAME_IGNITE_SECONDS);
                 damaged++;
             }
         }
-        boolean targetDamaged = this.damageTarget(target, FLAME_DAMAGE, MAX_FLAME_LENGTH * MAX_FLAME_LENGTH);
+        boolean targetDamaged = this.damageTarget(target, this.flameDamage(), MAX_FLAME_LENGTH * MAX_FLAME_LENGTH);
         if (targetDamaged) {
             target.igniteForSeconds(FLAME_IGNITE_SECONDS);
         }
         LOGGER.debug("Flamethrower damage scan entity={} actionTick={} target={} length={} intersections={} collateralDamaged={} targetDamaged={} distanceSquared={} hasLineOfSight={}",
             this.getId(), actionTick, target.getId(), length, intersections, damaged, targetDamaged,
             this.distanceToSqr(target), this.hasLineOfSight(target));
+    }
+
+    private float flameDamage() {
+        return (float)this.getAttributeValue(Attributes.ATTACK_DAMAGE) * FLAME_DAMAGE_MULTIPLIER;
     }
 
     public boolean isFlameWindow() {

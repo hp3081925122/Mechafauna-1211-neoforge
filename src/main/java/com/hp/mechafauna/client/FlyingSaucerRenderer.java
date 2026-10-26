@@ -5,7 +5,6 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
@@ -14,6 +13,14 @@ import com.geckolib.renderer.base.GeoRenderState;
 import com.geckolib.renderer.base.BoneSnapshots;
 import com.geckolib.renderer.base.RenderPassInfo;
 import com.geckolib.renderer.GeoEntityRenderer;
+
+import static com.hp.mechafauna.client.VfxShapes.cylinder;
+import static com.hp.mechafauna.client.VfxShapes.dashedRing;
+import static com.hp.mechafauna.client.VfxShapes.disc;
+import static com.hp.mechafauna.client.VfxShapes.flatRing;
+import static com.hp.mechafauna.client.VfxShapes.ribbon;
+import static com.hp.mechafauna.client.VfxShapes.vertex;
+import static com.hp.mechafauna.client.VfxShapes.wall;
 
 public final class FlyingSaucerRenderer extends GeoEntityRenderer<FlyingSaucerBoss, FlyingSaucerRenderState> {
     private static final Vec3 SIDE = new Vec3(1.0, 0.0, 0.0);
@@ -48,6 +55,23 @@ public final class FlyingSaucerRenderer extends GeoEntityRenderer<FlyingSaucerBo
         state.laserImpact = entity.getLaserImpact().subtract(position);
         state.summonOrigin = state.laserOrigin;
         state.summonGround = entity.getSummonPoint().subtract(position);
+        state.alive = entity.isAlive();
+        state.destroyedWeapons = entity.destroyedWeaponCount();
+        state.skill = entity.getSkillId();
+        state.skillTime = entity.getSkillTick() + partialTick;
+        state.time = entity.tickCount + partialTick;
+        state.position = position;
+        state.skillPoint = entity.getSkillPoint();
+        state.skillOrigin = entity.getSkillOrigin();
+        if (state.skill == FlyingSaucerBoss.SKILL_GRAVITY_WELL) {
+            state.gravityGround = entity.snapToGround(state.skillPoint, 0.5, 24.0).subtract(position);
+        }
+        if (state.skill == FlyingSaucerBoss.SKILL_HALO_SWEEP) {
+            float fire = state.skillTime - FlyingSaucerBoss.HALO_CHARGE_TICKS;
+            for (int beam = 0; beam < FlyingSaucerBoss.HALO_BEAMS; beam++) {
+                state.haloGround[beam] = entity.snapToGround(FlyingSaucerBoss.haloGroundPoint(state.skillPoint, fire, beam), 6.0, 10.0).subtract(position);
+            }
+        }
     }
 
     @Override
@@ -59,18 +83,20 @@ public final class FlyingSaucerRenderer extends GeoEntityRenderer<FlyingSaucerBo
     public void submit(FlyingSaucerRenderState state, PoseStack pose, SubmitNodeCollector collector,
                        CameraRenderState camera) {
         super.submit(state, pose, collector, camera);
-        if (!state.dying && state.laserTick <= 0 && state.summonTick <= 0) {
+        if (!state.dying && state.laserTick <= 0 && state.summonTick <= 0 && state.skill == FlyingSaucerBoss.SKILL_NONE && state.destroyedWeapons == 0) {
             return;
         }
-        collector.submitCustomGeometry(pose, RenderTypes.lightning(), (entry, vertices) -> {
+        collector.submitCustomGeometry(pose, VfxRenderTypes.GLOW, (entry, vertices) -> {
             Matrix4f matrix = new Matrix4f(entry.pose());
             if (state.dying) {
                 this.renderDeathExplosion(vertices, matrix, state.deathTime);
+                return;
             }
             if (state.summonTick > 0 && state.summonGround.y < state.summonOrigin.y) {
                 this.renderSummon(vertices, matrix, state.summonOrigin, state.summonGround,
                     state.summonTick + state.partialTick, state.summonKind);
             }
+            SaucerSkillRenderer.render(vertices, matrix, state);
             if (state.laserTick > 0) {
                 renderGroundLaser(vertices, matrix, state.laserOrigin, state.laserImpact,
                     state.laserTick + state.partialTick);
@@ -290,119 +316,6 @@ public final class FlyingSaucerRenderer extends GeoEntityRenderer<FlyingSaucerBo
             vertex(vertices, matrix, bottom.add(Math.cos(b) * bottomRadius, 0.0, Math.sin(b) * bottomRadius), red, green, blue, bottomAlpha);
             vertex(vertices, matrix, bottom.add(Math.cos(a) * bottomRadius, 0.0, Math.sin(a) * bottomRadius), red, green, blue, bottomAlpha);
         }
-    }
-
-    private static void dashedRing(VertexConsumer vertices, Matrix4f matrix, Vec3 center, double radius, double thickness, int dashes,
-                                   double phase, float red, float green, float blue, float alpha) {
-        if (alpha <= 0.003F) {
-            return;
-        }
-        double outer = radius + thickness * 0.5;
-        double inner = radius - thickness * 0.5;
-        double step = Math.PI * 2.0 / dashes;
-        for (int i = 0; i < dashes; i++) {
-            // 每段只画前 60%，形成断续的阵纹
-            double a = i * step + phase;
-            double b = a + step * 0.6;
-            Vec3 va = SIDE.scale(Math.cos(a)).add(FORWARD.scale(Math.sin(a)));
-            Vec3 vb = SIDE.scale(Math.cos(b)).add(FORWARD.scale(Math.sin(b)));
-            vertex(vertices, matrix, center.add(va.scale(inner)), red, green, blue, alpha);
-            vertex(vertices, matrix, center.add(va.scale(outer)), red, green, blue, alpha);
-            vertex(vertices, matrix, center.add(vb.scale(outer)), red, green, blue, alpha);
-            vertex(vertices, matrix, center.add(vb.scale(inner)), red, green, blue, alpha);
-        }
-    }
-
-    private static void cylinder(VertexConsumer vertices, Matrix4f matrix, Vec3 start, Vec3 direction, double length, double radius,
-                                 float red, float green, float blue, float alpha) {
-        Vec3 end = start.add(direction.scale(length));
-        for (int i = 0; i < 12; i++) {
-            double a = i * Math.PI / 6.0;
-            double b = (i + 1) * Math.PI / 6.0;
-            Vec3 offsetA = new Vec3(Math.cos(a) * radius, 0.0, Math.sin(a) * radius);
-            Vec3 offsetB = new Vec3(Math.cos(b) * radius, 0.0, Math.sin(b) * radius);
-            vertex(vertices, matrix, start.add(offsetA), red, green, blue, alpha);
-            vertex(vertices, matrix, start.add(offsetB), red, green, blue, alpha);
-            vertex(vertices, matrix, end.add(offsetB), red, green, blue, alpha);
-            vertex(vertices, matrix, end.add(offsetA), red, green, blue, alpha);
-        }
-    }
-
-    private static void flatRing(VertexConsumer vertices, Matrix4f matrix, Vec3 center, double radius, double thickness, int segments,
-                                 double phase, float red, float green, float blue, float alpha) {
-        if (alpha <= 0.003F || radius <= 0.0) {
-            return;
-        }
-        double outer = radius + thickness * 0.5;
-        double inner = Math.max(0.0, radius - thickness * 0.5);
-        for (int i = 0; i < segments; i++) {
-            double a = i * Math.PI * 2.0 / segments + phase;
-            double b = (i + 1) * Math.PI * 2.0 / segments + phase;
-            Vec3 va = SIDE.scale(Math.cos(a)).add(FORWARD.scale(Math.sin(a)));
-            Vec3 vb = SIDE.scale(Math.cos(b)).add(FORWARD.scale(Math.sin(b)));
-            // 内缘透明、外缘不透明形成柔和边
-            vertex(vertices, matrix, center.add(va.scale(inner)), red, green, blue, alpha * 0.25F);
-            vertex(vertices, matrix, center.add(va.scale(outer)), red, green, blue, alpha);
-            vertex(vertices, matrix, center.add(vb.scale(outer)), red, green, blue, alpha);
-            vertex(vertices, matrix, center.add(vb.scale(inner)), red, green, blue, alpha * 0.25F);
-        }
-    }
-
-    private static void disc(VertexConsumer vertices, Matrix4f matrix, Vec3 center, double radius, int segments,
-                             float red, float green, float blue, float alpha) {
-        for (int i = 0; i < segments; i++) {
-            double a = i * Math.PI * 2.0 / segments;
-            double b = (i + 1) * Math.PI * 2.0 / segments;
-            // 中心亮、边缘透明的地面光斑
-            vertex(vertices, matrix, center, red, green, blue, alpha);
-            vertex(vertices, matrix, center.add(Math.cos(a) * radius, 0.0, Math.sin(a) * radius), red, green, blue, 0.0F);
-            vertex(vertices, matrix, center.add(Math.cos(b) * radius, 0.0, Math.sin(b) * radius), red, green, blue, 0.0F);
-            vertex(vertices, matrix, center, red, green, blue, alpha);
-        }
-    }
-
-    private static void wall(VertexConsumer vertices, Matrix4f matrix, Vec3 center, double radius, double height, int segments,
-                             float red, float green, float blue, float alpha) {
-        if (alpha <= 0.003F) {
-            return;
-        }
-        for (int i = 0; i < segments; i++) {
-            double a = i * Math.PI * 2.0 / segments;
-            double b = (i + 1) * Math.PI * 2.0 / segments;
-            Vec3 bottomA = center.add(Math.cos(a) * radius, 0.0, Math.sin(a) * radius);
-            Vec3 bottomB = center.add(Math.cos(b) * radius, 0.0, Math.sin(b) * radius);
-            // 底部亮、顶部透明的竖直光带
-            vertex(vertices, matrix, bottomA, red, green, blue, alpha);
-            vertex(vertices, matrix, bottomB, red, green, blue, alpha);
-            vertex(vertices, matrix, bottomB.add(0.0, height, 0.0), red, green, blue, 0.0F);
-            vertex(vertices, matrix, bottomA.add(0.0, height, 0.0), red, green, blue, 0.0F);
-        }
-    }
-
-    private static void ribbon(VertexConsumer vertices, Matrix4f matrix, Vec3 from, Vec3 to, double width,
-                               float red, float green, float blue, float alpha) {
-        Vec3 along = to.subtract(from);
-        if (along.lengthSqr() < 1.0E-8) {
-            return;
-        }
-        // 两片互相垂直的面片，斜视角也可见
-        Vec3 horizontal = along.cross(new Vec3(0.0, 1.0, 0.0));
-        if (horizontal.lengthSqr() < 1.0E-8) {
-            horizontal = SIDE;
-        }
-        Vec3 first = horizontal.normalize().scale(width);
-        Vec3 second = along.cross(first).normalize().scale(width);
-        for (Vec3 offset : new Vec3[] {first, second}) {
-            vertex(vertices, matrix, from.subtract(offset), red, green, blue, alpha);
-            vertex(vertices, matrix, from.add(offset), red, green, blue, alpha);
-            vertex(vertices, matrix, to.add(offset), red, green, blue, alpha);
-            vertex(vertices, matrix, to.subtract(offset), red, green, blue, alpha);
-        }
-    }
-
-    private static void vertex(VertexConsumer vertices, Matrix4f matrix, Vec3 point,
-                               float red, float green, float blue, float alpha) {
-        vertices.addVertex(matrix, (float)point.x, (float)point.y, (float)point.z).setColor(red, green, blue, alpha);
     }
 
     private void renderDeathExplosion(VertexConsumer vertices, Matrix4f matrix, float time) {

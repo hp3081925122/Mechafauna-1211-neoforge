@@ -5,7 +5,6 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
@@ -33,7 +32,7 @@ public final class SaucerLaserStrikeRenderer extends EntityRenderer<SaucerLaserS
                        CameraRenderState camera) {
         super.submit(state, pose, collector, camera);
         Vec3 origin = new Vec3(0.0, SaucerLaserStrike.BEAM_HEIGHT, 0.0);
-        collector.submitCustomGeometry(pose, RenderTypes.lightning(), (entry, vertices) -> {
+        collector.submitCustomGeometry(pose, VfxRenderTypes.GLOW, (entry, vertices) -> {
             Matrix4f matrix = new Matrix4f(entry.pose());
             FlyingSaucerRenderer.renderGroundLaser(vertices, matrix, origin, state.impact,
                 state.laserTick + state.partialTick);

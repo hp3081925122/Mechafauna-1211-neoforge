@@ -1,6 +1,7 @@
 package com.hp.mechafauna.entity;
 
 import com.hp.mechafauna.entity.ai.CombatGoal;
+import com.hp.mechafauna.entity.ai.CombatMoveControl;
 import com.mojang.logging.LogUtils;
 import java.util.List;
 import java.util.Map;
@@ -54,9 +55,11 @@ public abstract class AnimatedHostileMob extends Monster implements GeoEntity {
     private int lastShotLogTick = -100;
     private boolean movementAnimationActive;
     private String lastMovementAnimation;
+    private int interruptedActionCooldown = -1;
 
     protected AnimatedHostileMob(EntityType<? extends Monster> entityType, Level level) {
         super(entityType, level);
+        this.moveControl = new CombatMoveControl(this);
     }
 
     @Override
@@ -234,6 +237,16 @@ public abstract class AnimatedHostileMob extends Monster implements GeoEntity {
         return this.getActionAnimations().get(action);
     }
 
+    protected int getInterruptedActionCooldown(String action, int actionTick) {
+        return -1;
+    }
+
+    public final int consumeInterruptedActionCooldown() {
+        int cooldown = this.interruptedActionCooldown;
+        this.interruptedActionCooldown = -1;
+        return cooldown;
+    }
+
     public abstract List<String> getAvailableActions(net.minecraft.world.entity.LivingEntity target, double distanceSquared);
 
     public abstract int getActionDuration(String action);
@@ -286,6 +299,7 @@ public abstract class AnimatedHostileMob extends Monster implements GeoEntity {
         int actionTick = Math.max(0, this.activeActionTicks - this.getActionTransitionTicks());
         if (!this.shouldContinueAction(action, actionTick, target)) {
             LOGGER.debug("Mech action interrupted entity={} action={} actionTick={} target={} targetAlive={} hasLineOfSight={} distanceSquared={}", this.getId(), action, actionTick, target.getId(), target.isAlive(), this.hasLineOfSight(target), this.distanceToSqr(target));
+            this.interruptedActionCooldown = this.getInterruptedActionCooldown(action, actionTick);
             this.cancelAction();
             return;
         }

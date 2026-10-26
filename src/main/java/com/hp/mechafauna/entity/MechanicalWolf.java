@@ -36,10 +36,20 @@ public final class MechanicalWolf extends MechanicalMob {
 
     @Override
     protected boolean shouldContinueAction(String action, int actionTick, LivingEntity target) {
-        if (!target.isAlive() || !this.hasLineOfSight(target) || this.distanceToSqr(target) > 2.6 * 2.6) {
+        if (!target.isAlive() || !this.hasLineOfSight(target) || this.distanceToSqr(target) > 3.4 * 3.4) {
             return false;
         }
-        return actionTick < BITE_HIT_TICK + 2 || this.distanceToSqr(target) <= 1.9 * 1.9;
+        return actionTick <= BITE_HIT_TICK || this.distanceToSqr(target) <= 2.4 * 2.4;
+    }
+
+    @Override
+    protected int getInterruptedActionCooldown(String action, int actionTick) {
+        return actionTick < BITE_HIT_TICK ? 6 : -1;
+    }
+
+    @Override
+    public boolean canMoveDuringAction(String action) {
+        return true;
     }
 
     @Override
