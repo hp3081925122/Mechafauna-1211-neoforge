@@ -5,8 +5,26 @@
       "weight": 1,
       "element": {
         "element_type": "minecraft:single_pool_element",
-        "location": "mechafauna:heavy_mech_fortress",
-        "processors": "minecraft:empty",
+        "location": "mechafauna:mech_wreck_1",
+        "processors": "mechafauna:wreck_weathering",
+        "projection": "rigid"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "mechafauna:mech_wreck_2",
+        "processors": "mechafauna:wreck_weathering",
+        "projection": "rigid"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "mechafauna:mech_wreck_3",
+        "processors": "mechafauna:wreck_weathering",
         "projection": "rigid"
       }
     }

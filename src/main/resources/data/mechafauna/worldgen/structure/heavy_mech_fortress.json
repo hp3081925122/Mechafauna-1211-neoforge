@@ -3,10 +3,12 @@
   "biomes": "#mechafauna:has_structure/heavy_mech_fortress",
   "step": "surface_structures",
   "spawn_overrides": {},
-  "terrain_adaptation": "beard_thin",
+  "terrain_adaptation": "none",
   "start_pool": "mechafauna:heavy_mech_fortress",
   "size": 1,
-  "start_height": { "absolute": 0 },
+  "start_height": {
+    "absolute": -6
+  },
   "project_start_to_heightmap": "WORLD_SURFACE_WG",
   "max_distance_from_center": 64,
   "use_expansion_hack": false

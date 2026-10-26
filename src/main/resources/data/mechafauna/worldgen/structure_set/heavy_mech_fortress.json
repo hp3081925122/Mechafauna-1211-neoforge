@@ -1,11 +1,14 @@
 {
   "structures": [
-    { "structure": "mechafauna:heavy_mech_fortress", "weight": 1 }
+    {
+      "structure": "mechafauna:heavy_mech_fortress",
+      "weight": 1
+    }
   ],
   "placement": {
     "type": "minecraft:random_spread",
-    "spacing": 40,
-    "separation": 16,
+    "spacing": 48,
+    "separation": 20,
     "salt": 274915631
   }
 }

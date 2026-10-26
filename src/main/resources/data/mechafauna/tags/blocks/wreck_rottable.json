@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    "minecraft:smooth_stone_slab",
+    "minecraft:lightning_rod",
+    "minecraft:chain",
+    "minecraft:waxed_exposed_cut_copper",
+    "minecraft:cyan_stained_glass"
+  ]
+}
