@@ -1,6 +1,16 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "mechafauna:item/flame_crawler_spawn_egg"
+    "model": "mechafauna:item/flame_crawler_spawn_egg",
+    "tints": [
+      {
+        "type": "minecraft:constant",
+        "value": 3816004
+      },
+      {
+        "type": "minecraft:constant",
+        "value": 13664304
+      }
+    ]
   }
 }

@@ -1,6 +1,16 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "mechafauna:item/mechanical_tank_spawn_egg"
+    "model": "mechafauna:item/mechanical_tank_spawn_egg",
+    "tints": [
+      {
+        "type": "minecraft:constant",
+        "value": 1979444
+      },
+      {
+        "type": "minecraft:constant",
+        "value": 11843792
+      }
+    ]
   }
 }

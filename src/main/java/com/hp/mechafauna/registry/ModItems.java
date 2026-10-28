@@ -123,14 +123,6 @@ public final class ModItems {
             event.accept(FLAME_CRAWLER_SPAWN_EGG.get());
             event.accept(PRISM_SENTINEL_SPAWN_EGG.get());
             event.accept(FLYING_SAUCER_BOSS_SPAWN_EGG.get());
-            event.accept(MECHANICAL_SCRAP.get());
-            event.accept(MECHANICAL_WOLF_SUMMON.get());
-            event.accept(WEAPONIZED_DRONE.get());
-            event.accept(MECHANICAL_SPIDER_THROWABLE.get());
-            event.accept(PRISM_CORE.get());
-            event.accept(HEAVY_MECH_MACHINE_GUN.get());
-            event.accept(REINFORCEMENT_CORE.get());
-            event.accept(FLYING_SAUCER_LOCATOR.get());
         }
         if (event.getTabKey().equals(CreativeModeTabs.COMBAT)) {
             event.accept(MECH_HELMET.get());

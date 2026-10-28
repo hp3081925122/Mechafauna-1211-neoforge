@@ -1,6 +1,16 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "mechafauna:item/heavy_mech_spawn_egg"
+    "model": "mechafauna:item/heavy_mech_spawn_egg",
+    "tints": [
+      {
+        "type": "minecraft:constant",
+        "value": 5928566
+      },
+      {
+        "type": "minecraft:constant",
+        "value": 14705700
+      }
+    ]
   }
 }

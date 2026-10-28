@@ -1,6 +1,16 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "mechafauna:item/prism_sentinel_spawn_egg"
+    "model": "mechafauna:item/prism_sentinel_spawn_egg",
+    "tints": [
+      {
+        "type": "minecraft:constant",
+        "value": 3421268
+      },
+      {
+        "type": "minecraft:constant",
+        "value": 4502724
+      }
+    ]
   }
 }

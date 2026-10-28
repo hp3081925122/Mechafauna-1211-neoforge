@@ -1,6 +1,7 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "mechafauna:item/flame_crawler_spawn_egg"
+    "layer0": "mechafauna:item/spawn_egg",
+    "layer1": "mechafauna:item/spawn_egg_overlay"
   }
 }

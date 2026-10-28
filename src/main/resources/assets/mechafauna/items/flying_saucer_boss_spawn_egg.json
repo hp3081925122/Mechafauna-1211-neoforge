@@ -1,6 +1,16 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "mechafauna:item/flying_saucer_boss_spawn_egg"
+    "model": "mechafauna:item/flying_saucer_boss_spawn_egg",
+    "tints": [
+      {
+        "type": "minecraft:constant",
+        "value": 11842740
+      },
+      {
+        "type": "minecraft:constant",
+        "value": 2274516
+      }
+    ]
   }
 }
